@@ -17,9 +17,3 @@ mise/docs/walkthrough.md
 - mise/docs以下にあるすべての*.mdをmise.mdに結合する。
 - 「**Source code**」と書かれた行を全削除する
 - miseディレクトリごと削除
-
-# ts実行
-
-```bash
-node --import tsx --env-file .env --watch ./src/scripts/hello.ts
-```
