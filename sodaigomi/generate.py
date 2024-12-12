@@ -33,15 +33,12 @@ def main():
             cols = row.find_all("td")
             if len(cols) >= 4:
                 # 分類
-                category = clean_text(cols[1].text)
+                category = clean_text(cols[1].get_text())
 
                 # 品目名 (brとdivを削除)
-                item_cell = cols[2]
-                for br in item_cell.find_all("br"):
-                    br.decompose()
-                for div in item_cell.find_all("div"):
-                    div.decompose()
-                item_name = clean_text(item_cell.text)
+                item_name = clean_text(
+                    cols[2].get_text().replace("◆", "").replace("◇", "")
+                )
 
                 # 料金 (brを削除)
                 price_cell = cols[3]
