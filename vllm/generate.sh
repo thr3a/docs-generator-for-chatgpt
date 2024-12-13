@@ -20,7 +20,8 @@ fi
 
 # 必要なファイルを結合
 cat "$CLONE_DIR/docs/source/serving/deploying_with_docker.rst" \
-    "$CLONE_DIR/docs/source/serving/openai_compatible_server.md" > "$OUTPUT_FILE"
+    "$CLONE_DIR/docs/source/serving/openai_compatible_server.md" \
+    engine_args.md > "$OUTPUT_FILE"
 
 # クローンしたディレクトリを削除
 rm -rf "$CLONE_DIR"
