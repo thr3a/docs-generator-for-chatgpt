@@ -8,3 +8,8 @@ docs/my-website/docsにあるすべて(回帰的に)の*.md
 をindex.mdに結合する。
 - tmpディレクトリごと削除
 ```
+
+
+```
+curl https://cdn.jsdelivr.net/gh/thr3a/docs-generator-for-chatgpt@master/kamal/index.md
+```
