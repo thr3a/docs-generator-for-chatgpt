@@ -1417,3 +1417,990 @@ By default, `Cache-Control`, `Last-Modified`, and `User-Agent` request headers a
       - X-Request-ID
       - X-Request-Start
 ```
+
+# lock.md
+
+# kamal lock
+
+Manage deployment locks.
+
+Commands that are unsafe to run concurrently will take a lock while they run. The lock is an atomically created directory in the `.kamal` directory on the primary server.
+
+You can manage them directly — for example, clearing a leftover lock from a failed command or preventing deployments during a maintenance window.
+
+```bash
+$ kamal lock
+Commands:
+  kamal lock acquire -m, --message=MESSAGE  # Acquire the deploy lock
+  kamal lock help [COMMAND]                 # Describe subcommands or one specific subcommand
+  kamal lock release                        # Release the deploy lock
+  kamal lock status                         # Report lock status
+```
+
+Example:
+
+```bash
+$ kamal lock status
+  INFO [f085f083] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [f085f083] Finished in 0.146 seconds with exit status 0 (successful).
+There is no deploy lock
+$ kamal lock acquire -m "Maintenance in progress"
+  INFO [d9f63437] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [d9f63437] Finished in 0.138 seconds with exit status 0 (successful).
+Acquired the deploy lock
+$ kamal lock status
+  INFO [9315755d] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [9315755d] Finished in 0.130 seconds with exit status 0 (successful).
+Locked by: Deployer at 2024-04-05T08:32:46Z
+Version: 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+Message: Maintenance in progress
+$ kamal lock release
+  INFO [7d5718a8] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [7d5718a8] Finished in 0.137 seconds with exit status 0 (successful).
+Released the deploy lock
+$ kamal lock status
+  INFO [f5900cc8] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [f5900cc8] Finished in 0.132 seconds with exit status 0 (successful).
+There is no deploy lock
+```
+
+# running-commands-on-servers.md
+
+# Running commands on servers
+
+You can use aliases for common commands.
+
+## Run command on all servers
+
+```bash
+$ kamal app exec 'ruby -v'
+App Host: 192.168.0.1
+ruby 3.1.3p185 (2022-11-24 revision 1a6b16756e) [x86_64-linux]
+
+App Host: 192.168.0.2
+ruby 3.1.3p185 (2022-11-24 revision 1a6b16756e) [x86_64-linux]
+```
+
+## Run command on primary server
+
+```bash
+$ kamal app exec --primary 'cat .ruby-version'
+App Host: 192.168.0.1
+3.1.3
+```
+
+## Run Rails command on all servers
+
+```bash
+$ kamal app exec 'bin/rails about'
+App Host: 192.168.0.1
+About your application's environment
+Rails version             7.1.0.alpha
+Ruby version              ruby 3.1.3p185 (2022-11-24 revision 1a6b16756e) [x86_64-linux]
+RubyGems version          3.3.26
+Rack version              2.2.5
+Middleware                ActionDispatch::HostAuthorization, Rack::Sendfile, ActionDispatch::Static, ActionDispatch::Executor, Rack::Runtime, Rack::MethodOverride, ActionDispatch::RequestId, ActionDispatch::RemoteIp, Rails::Rack::Logger, ActionDispatch::ShowExceptions, ActionDispatch::DebugExceptions, ActionDispatch::Callbacks, ActionDispatch::Cookies, ActionDispatch::Session::CookieStore, ActionDispatch::Flash, ActionDispatch::ContentSecurityPolicy::Middleware, ActionDispatch::PermissionsPolicy::Middleware, Rack::Head, Rack::ConditionalGet, Rack::ETag, Rack::TempfileReaper
+Application root          /rails
+Environment               production
+Database adapter          sqlite3
+Database schema version   20221231233303
+
+App Host: 192.168.0.2
+About your application's environment
+Rails version             7.1.0.alpha
+Ruby version              ruby 3.1.3p185 (2022-11-24 revision 1a6b16756e) [x86_64-linux]
+RubyGems version          3.3.26
+Rack version              2.2.5
+Middleware                ActionDispatch::HostAuthorization, Rack::Sendfile, ActionDispatch::Static, ActionDispatch::Executor, Rack::Runtime, Rack::MethodOverride, ActionDispatch::RequestId, ActionDispatch::RemoteIp, Rails::Rack::Logger, ActionDispatch::ShowExceptions, ActionDispatch::DebugExceptions, ActionDispatch::Callbacks, ActionDispatch::Cookies, ActionDispatch::Session::CookieStore, ActionDispatch::Flash, ActionDispatch::ContentSecurityPolicy::Middleware, ActionDispatch::PermissionsPolicy::Middleware, Rack::Head, Rack::ConditionalGet, Rack::ETag, Rack::TempfileReaper
+Application root          /rails
+Environment               production
+Database adapter          sqlite3
+Database schema version   20221231233303
+```
+
+## Run Rails runner on primary server
+
+```bash
+$ kamal app exec -p 'bin/rails runner "puts Rails.application.config.time_zone"'
+UTC
+```
+
+## Run interactive commands over SSH
+
+You can run interactive commands, like a Rails console or a bash session, on a server (default is primary, use `--hosts` to connect to another).
+
+Start a bash session in a new container made from the most recent app image:
+
+```bash
+kamal app exec -i bash
+```
+
+Start a bash session in the currently running container for the app:
+
+```bash
+kamal app exec -i --reuse bash
+```
+
+Start a Rails console in a new container made from the most recent app image:
+
+```bash
+kamal app exec -i 'bin/rails console'
+```
+
+# redeploy.md
+
+# kamal redeploy
+
+Deploy your app, but skip bootstrapping servers, starting kamal-proxy, pruning, and registry login.
+
+You must run `kamal deploy` at least once first.
+
+# prune.md
+
+# kamal prune
+
+Prune old containers and images.
+
+Kamal keeps the last 5 deployed containers and the images they are using. Pruning deletes all older containers and images.
+
+```bash
+$ kamal help prune
+Commands:
+  kamal prune all             # Prune unused images and stopped containers
+  kamal prune containers      # Prune all stopped containers, except the last n (default 5)
+  kamal prune help [COMMAND]  # Describe subcommands or one specific subcommand
+  kamal prune images          # Prune unused images
+```
+
+# app.md
+
+# kamal app
+
+Run `kamal app` to manage your running apps.
+
+To deploy new versions of the app, see `kamal deploy` and `kamal rollback`.
+
+You can use `kamal app exec` to run commands on servers.
+
+```bash
+$ kamal app
+Commands:
+  kamal app boot              # Boot app on servers (or reboot app if already running)
+  kamal app containers        # Show app containers on servers
+  kamal app details           # Show details about app containers
+  kamal app exec [CMD]        # Execute a custom command on servers within the app container (use --help to show options)
+  kamal app help [COMMAND]    # Describe subcommands or one specific subcommand
+  kamal app images            # Show app images on servers
+  kamal app logs              # Show log lines from app on servers (use --help to show options)
+  kamal app remove            # Remove app containers and images from servers
+  kamal app stale_containers  # Detect app stale containers
+  kamal app start             # Start existing app container on servers
+  kamal app stop              # Stop app container on servers
+  kamal app version           # Show app version currently running on servers
+```
+
+# secrets.md
+
+# kamal secrets
+
+```bash
+$ kamal secrets
+Commands:
+  kamal secrets extract                                                     # Extract a single secret from the results of a fetch call
+  kamal secrets fetch [SECRETS...] --account=ACCOUNT -a, --adapter=ADAPTER  # Fetch secrets from a vault
+  kamal secrets help [COMMAND]                                              # Describe subcommands or one specific subcommand
+  kamal secrets print                                                       # Print the secrets (for debugging)
+```
+
+Use these to read secrets from common password managers (currently 1Password, LastPass, and Bitwarden).
+
+The helpers will handle signing in, asking for passwords, and efficiently fetching the secrets:
+
+These are designed to be used with command substitution in `.kamal/secrets`
+
+```shell
+# .kamal/secrets
+
+SECRETS=$(kamal secrets fetch ...)
+
+REGISTRY_PASSWORD=$(kamal secrets extract REGISTRY_PASSWORD $SECRETS)
+DB_PASSWORD=$(kamal secrets extract DB_PASSWORD $SECRETS)
+```
+
+## 1Password
+
+First, install and configure the 1Password CLI.
+
+Use the adapter `1password`:
+
+```bash
+# Fetch from item `MyItem` in the vault `MyVault`
+kamal secrets fetch --adapter 1password --account myaccount --from MyVault/MyItem REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch from sections of item `MyItem` in the vault `MyVault`
+kamal secrets fetch --adapter 1password --account myaccount --from MyVault/MyItem common/REGISTRY_PASSWORD production/DB_PASSWORD
+
+# Fetch from separate items MyItem, MyItem2
+kamal secrets fetch --adapter 1password --account myaccount --from MyVault MyItem/REGISTRY_PASSWORD MyItem2/DB_PASSWORD
+
+# Fetch from multiple vaults
+kamal secrets fetch --adapter 1password --account myaccount MyVault/MyItem/REGISTRY_PASSWORD MyVault2/MyItem2/DB_PASSWORD
+
+# All three of these will extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract MyItem/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract MyVault/MyItem/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+## LastPass
+
+First, install and configure the LastPass CLI.
+
+Use the adapter `lastpass`:
+
+```bash
+# Fetch passwords
+kamal secrets fetch --adapter lastpass --account email@example.com REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from a folder
+kamal secrets fetch --adapter lastpass --account email@example.com --from MyFolder REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from multiple folders
+kamal secrets fetch --adapter lastpass --account email@example.com MyFolder/REGISTRY_PASSWORD MyFolder2/DB_PASSWORD
+
+# Extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract MyFolder/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+## Bitwarden
+
+First, install and configure the Bitwarden CLI.
+
+Use the adapter `bitwarden`:
+
+```bash
+# Fetch passwords
+kamal secrets fetch --adapter bitwarden --account email@example.com REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from an item
+kamal secrets fetch --adapter bitwarden --account email@example.com --from MyItem REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from multiple items
+kamal secrets fetch --adapter bitwarden --account email@example.com MyItem/REGISTRY_PASSWORD MyItem2/DB_PASSWORD
+
+# Extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract MyItem/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+## AWS Secrets Manager
+
+First, install and configure the AWS CLI.
+
+Use the adapter `aws_secrets_manager`:
+
+```bash
+# Fetch passwords
+kamal secrets fetch --adapter aws_secrets_manager --account default REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from an item
+kamal secrets fetch --adapter aws_secrets_manager --account default --from myapp/ REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from multiple items
+kamal secrets fetch --adapter aws_secrets_manager --account default myapp/REGISTRY_PASSWORD myapp/DB_PASSWORD
+
+# Extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract MyItem/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+**Note:** The `--account` option should be set to your AWS CLI profile name, which is typically `default`. Ensure that your AWS CLI is configured with the necessary permissions to access AWS Secrets Manager.
+
+## Doppler
+
+First, install and configure the Doppler CLI.
+
+Use the adapter `doppler`:
+
+```bash
+# Fetch passwords
+kamal secrets fetch --adapter doppler --from my-project/prd REGISTRY_PASSWORD DB_PASSWORD
+
+# The project/config pattern is also supported in this way
+kamal secrets fetch --adapter doppler my-project/prd/REGISTRY_PASSWORD my-project/prd/DB_PASSWORD
+
+# Extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract DB_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+Doppler organizes secrets in "projects" (like `my-awesome-project`) and "configs" (like `prod`, `stg`, etc), use the pattern `project/config` when defining the `--from` option.
+
+The doppler adapter does not use the `--account` option, if given it will be ignored.
+
+# details.md
+
+# kamal details
+
+Shows details of all your containers.
+
+```bash
+$ kamal details -q
+Traefik Host: server2
+CONTAINER ID   IMAGE                         COMMAND                  CREATED          STATUS          PORTS                NAMES
+b220af815ea7   registry:4443/traefik:v2.10   "/entrypoint.sh --pr…"   52 minutes ago   Up 52 minutes   0.0.0.0:80->80/tcp   traefik
+
+Traefik Host: server1
+CONTAINER ID   IMAGE                         COMMAND                  CREATED          STATUS          PORTS                NAMES
+e0abb837120a   registry:4443/traefik:v2.10   "/entrypoint.sh --pr…"   52 minutes ago   Up 52 minutes   0.0.0.0:80->80/tcp   traefik
+
+App Host: server2
+CONTAINER ID   IMAGE                                                        COMMAND                  CREATED          STATUS                    PORTS     NAMES
+3ec7c8122988   registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac   "/docker-entrypoint.…"   52 minutes ago   Up 52 minutes (healthy)   80/tcp    app-web-75bf6fa40b975cbd8aec05abf7164e0982f185ac
+
+App Host: server1
+CONTAINER ID   IMAGE                                                        COMMAND                  CREATED          STATUS                    PORTS     NAMES
+32ae39c98b29   registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac   "/docker-entrypoint.…"   52 minutes ago   Up 52 minutes (healthy)   80/tcp    app-web-75bf6fa40b975cbd8aec05abf7164e0982f185ac
+
+App Host: server3
+CONTAINER ID   IMAGE                                                        COMMAND                  CREATED          STATUS          PORTS     NAMES
+df8990876d14   registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac   "/docker-entrypoint.…"   52 minutes ago   Up 52 minutes   80/tcp    app-workers-75bf6fa40b975cbd8aec05abf7164e0982f185ac
+
+CONTAINER ID   IMAGE                          COMMAND                   CREATED          STATUS          PORTS     NAMES
+14857a6cb6b1   registry:4443/busybox:1.36.0   "sh -c 'echo \"Starti…"   42 minutes ago   Up 42 minutes             custom-busybox
+CONTAINER ID   IMAGE                          COMMAND                   CREATED          STATUS          PORTS     NAMES
+17f3ff88ff9f   registry:4443/busybox:1.36.0   "sh -c 'echo \"Starti…"   42 minutes ago   Up 42 minutes             custom-busybox
+```
+
+# setup.md
+
+# kamal setup
+
+Kamal setup will run everything required to deploy an application to a fresh host.
+
+It will:
+
+1. Install Docker on all servers, if it has permission and it is not already installed.
+2. Boot all accessories.
+3. Deploy the app (see `kamal deploy`).
+
+# help.md
+
+# kamal help
+
+Displays help messages. Run `kamal help [command]` for details on a specific command.
+
+```bash
+$ kamal help
+  kamal accessory           # Manage accessories (db/redis/search)
+  kamal app                 # Manage application
+  kamal audit               # Show audit log from servers
+  kamal build               # Build application image
+  kamal config              # Show combined config (including secrets!)
+  kamal deploy              # Deploy app to servers
+  kamal details             # Show details about all containers
+  kamal docs [SECTION]      # Show Kamal configuration documentation
+  kamal help [COMMAND]      # Describe available commands or one specific command
+  kamal init                # Create config stub in config/deploy.yml and env stub in .env
+  kamal lock                # Manage the deploy lock
+  kamal proxy               # Manage kamal-proxy
+  kamal prune               # Prune old application images and containers
+  kamal redeploy            # Deploy app to servers without bootstrapping servers, starting kamal-proxy, pruning, and registry login
+  kamal registry            # Login and -out of the image registry
+  kamal remove              # Remove kamal-proxy, app, accessories, and registry session from servers
+  kamal rollback [VERSION]  # Rollback app to VERSION
+  kamal secrets             # Helpers for extracting secrets
+  kamal server              # Bootstrap servers with curl and Docker
+  kamal setup               # Setup all accessories, push the env, and deploy app to servers
+  kamal upgrade             # Upgrade from Kamal 1.x to 2.0
+  kamal version             # Show Kamal version
+
+Options:
+  -v, [--verbose], [--no-verbose], [--skip-verbose]  # Detailed logging
+  -q, [--quiet], [--no-quiet], [--skip-quiet]        # Minimal logging
+      [--version=VERSION]                            # Run commands against a specific app version
+  -p, [--primary], [--no-primary], [--skip-primary]  # Run commands only on primary host instead of all
+  -h, [--hosts=HOSTS]                                # Run commands on these hosts instead of all (separate by comma, supports wildcards with *)
+  -r, [--roles=ROLES]                                # Run commands on these roles instead of all (separate by comma, supports wildcards with *)
+  -c, [--config-file=CONFIG_FILE]                    # Path to config file
+                                                     # Default: config/deploy.yml
+  -d, [--destination=DESTINATION]                    # Specify destination to be used for config file (staging -> deploy.staging.yml)
+  -H, [--skip-hooks]                                 # Don't run hooks
+                                                     # Default: false
+```
+
+# init.md
+
+# kamal init
+
+Creates the files needed to deploy your application with `kamal`.
+
+```bash
+$ kamal init
+Created configuration file in config/deploy.yml
+Created .kamal/secrets file
+Created sample hooks in .kamal/hooks
+```
+
+# audit.md
+
+# kamal audit
+
+Show the latest commands that have been run on each server.
+
+```bash
+$ kamal audit
+ kamal audit
+  INFO [1ec52bf7] Running /usr/bin/env tail -n 50 .kamal/app-audit.log on server2
+  INFO [54911c10] Running /usr/bin/env tail -n 50 .kamal/app-audit.log on server1
+  INFO [2f3d32d0] Running /usr/bin/env tail -n 50 .kamal/app-audit.log on server3
+  INFO [2f3d32d0] Finished in 0.232 seconds with exit status 0 (successful).
+App Host: server3
+[2024-04-05T07:14:23Z] [user] Pushed env files
+[2024-04-05T07:14:29Z] [user] Pulled image with version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:45Z] [user] [workers] Booted app version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:53Z] [user] Tagging registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac as the latest image
+[2024-04-05T07:14:53Z] [user] Pruned containers
+[2024-04-05T07:14:53Z] [user] Pruned images
+
+  INFO [54911c10] Finished in 0.232 seconds with exit status 0 (successful).
+App Host: server1
+[2024-04-05T07:14:23Z] [user] Pushed env files
+[2024-04-05T07:14:29Z] [user] Pulled image with version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:45Z] [user] [web] Booted app version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:53Z] [user] Tagging registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac as the latest image
+[2024-04-05T07:14:53Z] [user] Pruned containers
+[2024-04-05T07:14:53Z] [user] Pruned images
+
+  INFO [1ec52bf7] Finished in 0.233 seconds with exit status 0 (successful).
+App Host: server2
+[2024-04-05T07:14:23Z] [user] Pushed env files
+[2024-04-05T07:14:29Z] [user] Pulled image with version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:45Z] [user] [web] Booted app version 75bf6fa40b975cbd8aec05abf7164e0982f185ac
+[2024-04-05T07:14:53Z] [user] Tagging registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac as the latest image
+[2024-04-05T07:14:53Z] [user] Pruned containers
+[2024-04-05T07:14:53Z] [user] Pruned images
+```
+
+# config.md
+
+# kamal config
+
+Displays your config.
+
+```bash
+$ kamal config
+---
+:roles:
+- web
+:hosts:
+- vm1
+- vm2
+:primary_host: vm1
+:version: 505f4f60089b262c693885596fbd768a6ab663e9
+:repository: registry:4443/app
+:absolute_image: registry:4443/app:505f4f60089b262c693885596fbd768a6ab663e9
+:service_with_version: app-505f4f60089b262c693885596fbd768a6ab663e9
+:volume_args: []
+:ssh_options:
+  :user: root
+  :port: 22
+  :keepalive: true
+  :keepalive_interval: 30
+  :log_level: :fatal
+:sshkit: {}
+:builder:
+  driver: docker
+  arch: arm64
+  args:
+    COMMIT_SHA: 505f4f60089b262c693885596fbd768a6ab663e9
+:accessories:
+  busybox:
+    service: custom-busybox
+    image: registry:4443/busybox:1.36.0
+    cmd: sh -c 'echo "Starting busybox..."; trap exit term; while true; do sleep 1;
+      done'
+    roles:
+    - web
+:logging:
+- "--log-opt"
+- max-size="10m"
+```
+
+# deploy.md
+
+# kamal deploy
+
+Build and deploy your app to all servers. By default, it will build the currently checked out version of the app.
+
+Kamal will use kamal-proxy to seamlessly move requests from the old version of the app to the new one without downtime.
+
+The deployment process is:
+
+1. Log in to the Docker registry locally and on all servers.
+2. Build the app image, push it to the registry, and pull it onto the servers.
+3. Ensure kamal-proxy is running and accepting traffic on ports 80 and 443.
+4. Start a new container with the version of the app that matches the current Git version hash.
+5. Tell kamal-proxy to route traffic to the new container once it is responding with `200 OK` to `GET /up`.
+6. Stop the old container running the previous version of the app.
+7. Prune unused images and stopped containers to ensure servers don't fill up.
+
+```bash
+Usage:
+  kamal deploy
+
+Options:
+  -P, [--skip-push]                                  # Skip image build and push
+                                                     # Default: false
+  -v, [--verbose], [--no-verbose], [--skip-verbose]  # Detailed logging
+  -q, [--quiet], [--no-quiet], [--skip-quiet]        # Minimal logging
+      [--version=VERSION]                            # Run commands against a specific app version
+  -p, [--primary], [--no-primary], [--skip-primary]  # Run commands only on primary host instead of all
+  -h, [--hosts=HOSTS]                                # Run commands on these hosts instead of all (separate by comma, supports wildcards with *)
+  -r, [--roles=ROLES]                                # Run commands on these roles instead of all (separate by comma, supports wildcards with *)
+  -c, [--config-file=CONFIG_FILE]                    # Path to config file
+                                                     # Default: config/deploy.yml
+  -d, [--destination=DESTINATION]                    # Specify destination to be used for config file (staging -> deploy.staging.yml)
+  -H, [--skip-hooks]                                 # Don't run hooks
+                                                     # Default: false
+```
+
+# version.md
+
+# kamal version
+
+Returns the version of Kamal you have installed.
+
+```bash
+$ kamal version
+2.4.0
+```
+
+# index.md
+
+# build.md
+
+# kamal build
+
+Build your app images and push them to your servers. These commands are called indirectly by `kamal deploy` and `kamal redeploy`.
+
+By default, Kamal will only build files you have committed to your Git repository. However, you can configure Kamal to use the current context (instead of a Git archive of HEAD) by setting the build context.
+
+```bash
+$ kamal build
+Commands:
+  kamal build create          # Create a build setup
+  kamal build deliver         # Build app and push app image to registry then pull image on servers
+  kamal build details         # Show build setup
+  kamal build help [COMMAND]  # Describe subcommands or one specific subcommand
+  kamal build pull            # Pull app image from registry onto servers
+  kamal build push            # Build and push app image to registry
+  kamal build remove          # Remove build setup
+```
+
+Examples:
+
+```bash
+$ kamal build push
+Running the pre-connect hook...
+  INFO [92ebc200] Running /usr/bin/env .kamal/hooks/pre-connect on localhost
+  INFO [92ebc200] Finished in 0.004 seconds with exit status 0 (successful).
+  INFO [cbbad07e] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [e6ac30e7] Running /usr/bin/env mkdir -p .kamal on server3
+  INFO [a1adae3a] Running /usr/bin/env mkdir -p .kamal on server2
+  INFO [cbbad07e] Finished in 0.145 seconds with exit status 0 (successful).
+  INFO [a1adae3a] Finished in 0.179 seconds with exit status 0 (successful).
+  INFO [e6ac30e7] Finished in 0.182 seconds with exit status 0 (successful).
+  INFO [c6242009] Running /usr/bin/env mkdir -p .kamal/locks on server1
+  INFO [c6242009] Finished in 0.009 seconds with exit status 0 (successful).
+Acquiring the deploy lock...
+  INFO [427ae9bc] Running docker --version on localhost
+  INFO [427ae9bc] Finished in 0.039 seconds with exit status 0 (successful).
+Running the pre-build hook...
+  INFO [2f120630] Running /usr/bin/env .kamal/hooks/pre-build on localhost
+  INFO [2f120630] Finished in 0.004 seconds with exit status 0 (successful).
+  INFO [ad386911] Running /usr/bin/env git archive --format=tar HEAD | docker build -t registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac -t registry:4443/app:latest --label service="app" --build-arg [REDACTED] --file Dockerfile - && docker push registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac && docker push registry:4443/app:latest on localhost
+ DEBUG [ad386911] Command: /usr/bin/env git archive --format=tar HEAD | docker build -t registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac -t registry:4443/app:latest --label service="app" --build-arg [REDACTED] --file Dockerfile - && docker push registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac && docker push registry:4443/app:latest
+ DEBUG [ad386911] 	#0 building with "default" instance using docker driver
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#1 [internal] load remote build context
+ DEBUG [ad386911] 	#1 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#2 copy /context /
+ DEBUG [ad386911] 	#2 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#3 [internal] load metadata for registry:4443/nginx:1-alpine-slim
+ DEBUG [ad386911] 	#3 DONE 0.0s
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#4 [1/5] FROM registry:4443/nginx:1-alpine-slim@sha256:558cdef0693faaa02c0b81c21b5d6f4b4fe24e3ac747581f3e6e8f5c4032db58
+ DEBUG [ad386911] 	#4 DONE 0.0s
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#5 [4/5] RUN mkdir -p /usr/share/nginx/html/versions && echo "version" > /usr/share/nginx/html/versions/75bf6fa40b975cbd8aec05abf7164e0982f185ac
+ DEBUG [ad386911] 	#5 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#6 [2/5] COPY default.conf /etc/nginx/conf.d/default.conf
+ DEBUG [ad386911] 	#6 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#7 [3/5] RUN echo 75bf6fa40b975cbd8aec05abf7164e0982f185ac > /usr/share/nginx/html/version
+ DEBUG [ad386911] 	#7 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#8 [5/5] RUN mkdir -p /usr/share/nginx/html/versions && echo "hidden" > /usr/share/nginx/html/versions/.hidden
+ DEBUG [ad386911] 	#8 CACHED
+ DEBUG [ad386911]
+ DEBUG [ad386911] 	#9 exporting to image
+ DEBUG [ad386911] 	#9 exporting layers done
+ DEBUG [ad386911] 	#9 writing image sha256:ed9205d697e5f9f735e84e341a19a3d379b9b4a8dc5d04b6219bda29e6126489 done
+ DEBUG [ad386911] 	#9 naming to registry:4443/app:75bf6fa40b975cbd8aec05abf7164e0982f185ac done
+ DEBUG [ad386911] 	#9 naming to registry:4443/app:latest done
+ DEBUG [ad386911] 	#9 DONE 0.0s
+ DEBUG [ad386911] 	The push refers to repository [registry:4443/app]
+ DEBUG [ad386911] 	7e49189613ab: Preparing
+ DEBUG [ad386911] 	054c18a8e0a6: Preparing
+ DEBUG [ad386911] 	1552c04abfaa: Preparing
+ DEBUG [ad386911] 	36f2f66132ea: Preparing
+ DEBUG [ad386911] 	d5e2fb5f3301: Preparing
+ DEBUG [ad386911] 	8fde05710e93: Preparing
+ DEBUG [ad386911] 	fdf572380e92: Preparing
+ DEBUG [ad386911] 	a031a04401d0: Preparing
+ DEBUG [ad386911] 	ecb78d985cad: Preparing
+ DEBUG [ad386911] 	3e0e830ccd77: Preparing
+ DEBUG [ad386911] 	7c504f21be85: Preparing
+ DEBUG [ad386911] 	fdf572380e92: Waiting
+ DEBUG [ad386911] 	a031a04401d0: Waiting
+ DEBUG [ad386911] 	ecb78d985cad: Waiting
+ DEBUG [ad386911] 	3e0e830ccd77: Waiting
+ DEBUG [ad386911] 	7c504f21be85: Waiting
+ DEBUG [ad386911] 	8fde05710e93: Waiting
+ DEBUG [ad386911] 	054c18a8e0a6: Layer already exists
+ DEBUG [ad386911] 	7e49189613ab: Layer already exists
+ DEBUG [ad386911] 	36f2f66132ea: Layer already exists
+ DEBUG [ad386911] 	d5e2fb5f3301: Layer already exists
+ DEBUG [ad386911] 	1552c04abfaa: Layer already exists
+ DEBUG [ad386911] 	8fde05710e93: Layer already exists
+ DEBUG [ad386911] 	fdf572380e92: Layer already exists
+ DEBUG [ad386911] 	a031a04401d0: Layer already exists
+ DEBUG [ad386911] 	3e0e830ccd77: Layer already exists
+ DEBUG [ad386911] 	ecb78d985cad: Layer already exists
+ DEBUG [ad386911] 	7c504f21be85: Layer already exists
+ DEBUG [ad386911] 	75bf6fa40b975cbd8aec05abf7164e0982f185ac: digest: sha256:68e534dab98fc7c65c8e2353f6414e9c6c812481deea8d57ae6b0b0140ec40d5 size: 2604
+ DEBUG [ad386911] 	The push refers to repository [registry:4443/app]
+ DEBUG [ad386911] 	7e49189613ab: Preparing
+ DEBUG [ad386911] 	054c18a8e0a6: Preparing
+ DEBUG [ad386911] 	1552c04abfaa: Preparing
+ DEBUG [ad386911] 	36f2f66132ea: Preparing
+ DEBUG [ad386911] 	d5e2fb5f3301: Preparing
+ DEBUG [ad386911] 	8fde05710e93: Preparing
+ DEBUG [ad386911] 	fdf572380e92: Preparing
+ DEBUG [ad386911] 	a031a04401d0: Preparing
+ DEBUG [ad386911] 	ecb78d985cad: Preparing
+ DEBUG [ad386911] 	3e0e830ccd77: Preparing
+ DEBUG [ad386911] 	7c504f21be85: Preparing
+ DEBUG [ad386911] 	fdf572380e92: Waiting
+ DEBUG [ad386911] 	a031a04401d0: Waiting
+ DEBUG [ad386911] 	ecb78d985cad: Waiting
+ DEBUG [ad386911] 	3e0e830ccd77: Waiting
+ DEBUG [ad386911] 	7c504f21be85: Waiting
+ DEBUG [ad386911] 	8fde05710e93: Waiting
+ DEBUG [ad386911] 	36f2f66132ea: Layer already exists
+ DEBUG [ad386911] 	7e49189613ab: Layer already exists
+ DEBUG [ad386911] 	054c18a8e0a6: Layer already exists
+ DEBUG [ad386911] 	1552c04abfaa: Layer already exists
+ DEBUG [ad386911] 	d5e2fb5f3301: Layer already exists
+ DEBUG [ad386911] 	8fde05710e93: Layer already exists
+ DEBUG [ad386911] 	fdf572380e92: Layer already exists
+ DEBUG [ad386911] 	a031a04401d0: Layer already exists
+ DEBUG [ad386911] 	ecb78d985cad: Layer already exists
+ DEBUG [ad386911] 	3e0e830ccd77: Layer already exists
+ DEBUG [ad386911] 	7c504f21be85: Layer already exists
+ DEBUG [ad386911] 	latest: digest: sha256:68e534dab98fc7c65c8e2353f6414e9c6c812481deea8d57ae6b0b0140ec40d5 size: 2604
+  INFO [ad386911] Finished in 0.502 seconds with exit status 0 (successful).
+Releasing the deploy lock...
+```
+
+# server.md
+
+# kamal server
+
+```bash
+$ kamal server
+Commands:
+  kamal server bootstrap       # Set up Docker to run Kamal apps
+  kamal server exec            # Run a custom command on the server (use --help to show options)
+  kamal server help [COMMAND]  # Describe subcommands or one specific subcommand
+```
+
+## Bootstrap server
+
+You can run `kamal server bootstrap` to set up Docker on your hosts.
+
+It will check if Docker is installed and, if not, it will attempt to install it via get.docker.com.
+
+```bash
+$ kamal server bootstrap
+```
+
+## Execute command on all servers
+
+Run a custom command on all servers.
+
+```bash
+$ kamal server exec "date"
+Running 'date' on 867.53.0.9...
+  INFO [e79c62bb] Running /usr/bin/env date on 867.53.0.9
+  INFO [e79c62bb] Finished in 0.247 seconds with exit status 0 (successful).
+App Host: 867.53.0.9
+Thu Jun 13 08:06:19 AM UTC 2024
+```
+
+## Execute command on primary server
+
+Run a custom command on the primary server.
+
+```bash
+$ kamal server exec --primary "date"
+Running 'date' on 867.53.0.9...
+  INFO [8bbeb21a] Running /usr/bin/env date on 867.53.0.9
+  INFO [8bbeb21a] Finished in 0.265 seconds with exit status 0 (successful).
+App Host: 867.53.0.9
+Thu Jun 13 08:07:09 AM UTC 2024
+```
+
+## Execute interactive command on server
+
+Run an interactive command on the server.
+
+```bash
+$ kamal server exec --interactive "/bin/bash"
+Running '/bin/bash' on 867.53.0.9 interactively...
+root@server:~#
+```
+
+# rollback.md
+
+# kamal rollback
+
+You can rollback a deployment with `kamal rollback`.
+
+If you've discovered a bad deploy, you can quickly rollback to a previous image. You can see what old containers are available for rollback by running `kamal app containers -q`. It'll give you a presentation similar to `kamal app details`, but include all the old containers as well.
+
+```
+App Host: 192.168.0.1
+CONTAINER ID   IMAGE                                                                         COMMAND                    CREATED          STATUS                      PORTS      NAMES
+1d3c91ed1f51   registry.digitalocean.com/user/app:6ef8a6a84c525b123c5245345a8483f86d05a123   "/rails/bin/docker-e..."   19 minutes ago   Up 19 minutes               3000/tcp   chat-6ef8a6a84c525b123c5245345a8483f86d05a123
+539f26b28369   registry.digitalocean.com/user/app:e5d9d7c2b898289dfbc5f7f1334140d984eedae4   "/rails/bin/docker-e..."   31 minutes ago   Exited (1) 27 minutes ago              chat-e5d9d7c2b898289dfbc5f7f1334140d984eedae4
+
+App Host: 192.168.0.2
+CONTAINER ID   IMAGE                                                                         COMMAND                    CREATED          STATUS                      PORTS      NAMES
+badb1aa51db4   registry.digitalocean.com/user/app:6ef8a6a84c525b123c5245345a8483f86d05a123   "/rails/bin/docker-e..."   19 minutes ago   Up 19 minutes               3000/tcp   chat-6ef8a6a84c525b123c5245345a8483f86d05a123
+6f170d1172ae   registry.digitalocean.com/user/app:e5d9d7c2b898289dfbc5f7f1334140d984eedae4   "/rails/bin/docker-e..."   31 minutes ago   Exited (1) 27 minutes ago              chat-e5d9d7c2b898289dfbc5f7f1334140d984eedae4
+```
+
+From the example above, we can see that `e5d9d7c2b898289dfbc5f7f1334140d984eedae4` was the last version, so it's available as a rollback target. We can perform this rollback by running `kamal rollback e5d9d7c2b898289dfbc5f7f1334140d984eedae4`.
+
+That'll stop `6ef8a6a84c525b123c5245345a8483f86d05a123` and then start a new container running the same image as `e5d9d7c2b898289dfbc5f7f1334140d984eedae4`. Nothing needs to be downloaded from the registry.
+
+**Note:** By default, old containers are pruned after 3 days when you run `kamal deploy`.
+
+# accessory.md
+
+# kamal accessory
+
+Accessories are long-lived services that your app depends on. They are not updated when you deploy.
+
+They are not proxied, so rebooting will have a small period of downtime. You can map volumes from the host server into your container for persistence across reboots.
+
+Run `kamal accessory` to view and manage your accessories.
+
+```bash
+$ kamal accessory
+Commands:
+  kamal accessory boot [NAME]        # Boot new accessory service on host (use NAME=all to boot all accessories)
+  kamal accessory details [NAME]     # Show details about accessory on host (use NAME=all to show all accessories)
+  kamal accessory exec [NAME] [CMD]  # Execute a custom command on servers (use --help to show options)
+  kamal accessory help [COMMAND]     # Describe subcommands or one specific subcommand
+  kamal accessory logs [NAME]        # Show log lines from accessory on host (use --help to show options)
+  kamal accessory reboot [NAME]      # Reboot existing accessory on host (stop container, remove container, start new container; use NAME=all to boot all accessories)
+  kamal accessory remove [NAME]      # Remove accessory container, image and data directory from host (use NAME=all to remove all accessories)
+  kamal accessory restart [NAME]     # Restart existing accessory container on host
+  kamal accessory start [NAME]       # Start existing accessory container on host
+  kamal accessory stop [NAME]        # Stop existing accessory container on host
+```
+
+To update an accessory, update the image in your config and run `kamal accessory reboot [NAME]`.
+
+Example:
+
+```bash
+$ kamal accessory boot all
+Running the pre-connect hook...
+  INFO [bd04b11b] Running /usr/bin/env .kamal/hooks/pre-connect on localhost
+  INFO [bd04b11b] Finished in 0.003 seconds with exit status 0 (successful).
+  INFO [681a028b] Running /usr/bin/env mkdir -p .kamal on server2
+  INFO [e3495d1d] Running /usr/bin/env mkdir -p .kamal on server1
+  INFO [e7c5c159] Running /usr/bin/env mkdir -p .kamal on server3
+  INFO [e3495d1d] Finished in 0.170 seconds with exit status 0 (successful).
+  INFO [681a028b] Finished in 0.182 seconds with exit status 0 (successful).
+  INFO [e7c5c159] Finished in 0.185 seconds with exit status 0 (successful).
+  INFO [83153af3] Running /usr/bin/env mkdir -p .kamal/locks on server1
+  INFO [83153af3] Finished in 0.028 seconds with exit status 0 (successful).
+Acquiring the deploy lock...
+  INFO [416a654c] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on server1
+  INFO [3fb56559] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on server2
+  INFO [3fb56559] Finished in 0.065 seconds with exit status 0 (successful).
+  INFO [416a654c] Finished in 0.080 seconds with exit status 0 (successful).
+  INFO [2705083f] Running docker run --name custom-busybox --detach --restart unless-stopped --log-opt max-size="10m" --env-file .kamal/env/accessories/custom-busybox.env --label service="custom-busybox" registry:4443/busybox:1.36.0 sh -c 'echo "Starting busybox..."; trap exit term; while true; do sleep 1; done' on server2
+  INFO [3cb3adb6] Running docker run --name custom-busybox --detach --restart unless-stopped --log-opt max-size="10m" --env-file .kamal/env/accessories/custom-busybox.env --label service="custom-busybox" registry:4443/busybox:1.36.0 sh -c 'echo "Starting busybox..."; trap exit term; while true; do sleep 1; done' on server1
+  INFO [3cb3adb6] Finished in 0.552 seconds with exit status 0 (successful).
+  INFO [2705083f] Finished in 0.566 seconds with exit status 0 (successful).
+Releasing the deploy lock...
+```
+
+# docs.md
+
+# kamal docs
+
+Outputs configuration documentation.
+
+# upgrade.md
+
+# kamal upgrade
+
+Use `kamal upgrade` to upgrade your app running under Kamal 1.x to Kamal 2.0.
+
+Please read the Upgrade Guide first.
+
+# proxy.md
+
+# kamal proxy
+
+Kamal uses kamal-proxy to proxy requests to the application containers, allowing us to have zero-downtime deployments.
+
+```bash
+$ kamal proxy
+Commands:
+  kamal proxy boot            # Boot proxy on servers
+  kamal proxy boot_config <set|get|reset>  # Manage kamal-proxy boot configuration
+  kamal proxy details         # Show details about proxy container from servers
+  kamal proxy help [COMMAND]  # Describe subcommands or one specific subcommand
+  kamal proxy logs            # Show log lines from proxy on servers
+  kamal proxy reboot          # Reboot proxy on servers (stop container, remove container, start new container)
+  kamal proxy remove          # Remove proxy container and image from servers
+  kamal proxy restart         # Restart existing proxy container on servers
+  kamal proxy start           # Start existing proxy container on servers
+  kamal proxy stop            # Stop existing proxy container on servers
+```
+
+When you want to upgrade kamal-proxy, you can call `kamal proxy reboot`. This is going to cause a small outage on each server and will prompt for confirmation.
+
+You can use a rolling reboot with `kamal proxy reboot --rolling` to avoid restarting on all servers simultaneously.
+
+You can also use pre-proxy-reboot and post-proxy-reboot hooks to remove and add the servers to upstream load balancers as you reboot them.
+
+## Boot configuration
+
+You can manage boot configuration for kamal-proxy with `kamal proxy boot_config`.
+
+```bash
+$ kamal proxy boot_config --help
+Usage:
+  kamal proxy boot_config <set|get|clear>
+
+Options:
+      [--publish], [--no-publish], [--skip-publish]   # Publish the proxy ports on the host
+                                                      # Default: true
+      [--http-port=N]                                 # HTTP port to publish on the host
+                                                      # Default: 80
+      [--https-port=N]                                # HTTPS port to publish on the host
+                                                      # Default: 443
+      [--log-max-size=LOG_MAX_SIZE]                   # Max size of proxy logs
+                                                      # Default: 10m
+      [--docker-options=option=value option2=value2]  # Docker options to pass to the proxy container
+```
+
+When set, the config will be stored on the server the proxy runs on.
+
+If you are running more than one application on a single server, there is only one proxy, and the boot config is shared, so you'll need to manage it centrally.
+
+The configuration will be loaded at boot time when calling `kamal proxy boot` or `kamal proxy reboot`.
+
+# registry.md
+
+# kamal registry
+
+Log in and out of the Docker registry on your servers.
+
+Examples:
+
+```bash
+$ kamal registry login
+  INFO [60171eef] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on localhost
+  INFO [60171eef] Finished in 0.069 seconds with exit status 0 (successful).
+  INFO [427368d0] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on server1
+  INFO [4c4ab467] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on server3
+  INFO [f985bed4] Running docker login registry:4443 -u [REDACTED] -p [REDACTED] on server2
+  INFO [427368d0] Finished in 0.232 seconds with exit status 0 (successful).
+  INFO [f985bed4] Finished in 0.234 seconds with exit status 0 (successful).
+  INFO [4c4ab467] Finished in 0.245 seconds with exit status 0 (successful).
+$ kamal registry logout
+  INFO [72b94e74] Running docker logout registry:4443 on server2
+  INFO [d096054d] Running docker logout registry:4443 on server1
+  INFO [8488da90] Running docker logout registry:4443 on server3
+  INFO [72b94e74] Finished in 0.142 seconds with exit status 0 (successful).
+  INFO [8488da90] Finished in 0.179 seconds with exit status 0 (successful).
+  INFO [d096054d] Finished in 0.183 seconds with exit status 0 (successful).
+```
+
+# remove.md
+
+# kamal remove
+
+This will remove the app, kamal-proxy, and accessory containers and log out of the Docker registry.
+
+It will prompt for confirmation unless you add the `-y` option.
+
+# view-all-commands.md
+
+# View all commands
+
+You can view all of the commands by running `kamal --help`.
+
+```bash
+$ kamal --help
+Commands:
+  kamal accessory           # Manage accessories (db/redis/search)
+  kamal app                 # Manage application
+  kamal audit               # Show audit log from servers
+  kamal build               # Build application image
+  kamal config              # Show combined config (including secrets!)
+  kamal deploy              # Deploy app to servers
+  kamal details             # Show details about all containers
+  kamal docs [SECTION]      # Show Kamal configuration documentation
+  kamal help [COMMAND]      # Describe available commands or one specific command
+  kamal init                # Create config stub in config/deploy.yml and env stub in .env
+  kamal lock                # Manage the deploy lock
+  kamal proxy               # Manage kamal-proxy
+  kamal prune               # Prune old application images and containers
+  kamal redeploy            # Deploy app to servers without bootstrapping servers, starting kamal-proxy, pruning, and registry login
+  kamal registry            # Login and -out of the image registry
+  kamal remove              # Remove kamal-proxy, app, accessories, and registry session from servers
+  kamal rollback [VERSION]  # Rollback app to VERSION
+  kamal secrets             # Helpers for extracting secrets
+  kamal server              # Bootstrap servers with curl and Docker
+  kamal setup               # Setup all accessories, push the env, and deploy app to servers
+  kamal upgrade             # Upgrade from Kamal 1.x to 2.0
+  kamal version             # Show Kamal version
+
+Options:
+  -v, [--verbose], [--no-verbose], [--skip-verbose]  # Detailed logging
+  -q, [--quiet], [--no-quiet], [--skip-quiet]        # Minimal logging
+      [--version=VERSION]                            # Run commands against a specific app version
+  -p, [--primary], [--no-primary], [--skip-primary]  # Run commands only on primary host instead of all
+  -h, [--hosts=HOSTS]                                # Run commands on these hosts instead of all (separate by comma, supports wildcards with *)
+  -r, [--roles=ROLES]                                # Run commands on these roles instead of all (separate by comma, supports wildcards with *)
+  -c, [--config-file=CONFIG_FILE]                    # Path to config file
+                                                     # Default: config/deploy.yml
+  -d, [--destination=DESTINATION]                    # Specify destination to be used for config file (staging -> deploy.staging.yml)
+  -H, [--skip-hooks]                                 # Don't run hooks
+                                                     # Default: false
+```
