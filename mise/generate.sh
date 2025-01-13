@@ -1,19 +1,25 @@
 #!/bin/bash
 
+# リポジトリのURL
 REPO_URL="https://github.com/jdx/mise.git"
-REPO_DIR="mise"
+# クローン先ディレクトリ名
+CLONE_DIR="mise"
+# 出力ファイル名
+OUTPUT_FILE="index.md"
 
-if [ ! -d "$REPO_DIR" ]; then
-    echo "リポジトリをクローン"
-    git clone --depth 1 "$REPO_URL"
+# クローンディレクトリの存在確認
+if [ ! -d "$CLONE_DIR" ]; then
+    # ディレクトリが存在しない場合、depth 1でクローン
+    git clone --depth 1 "$REPO_URL" "$CLONE_DIR"
 else
-    echo "リポジトリを更新"
-    cd "$REPO_DIR"
+    # ディレクトリが存在する場合、pull
+    cd "$CLONE_DIR"
     git pull
     cd ..
 fi
 
 FILES_TO_DELETE=(
+    "mise/docs/external-resources.md"
     "mise/docs/tips-and-tricks.md"
     "mise/docs/about.md"
     "mise/docs/team.md"
@@ -35,15 +41,16 @@ for file in "${FILES_TO_DELETE[@]}"; do
     fi
 done
 
-# mise/docs以下の全mdファイルを結合
-echo > mise.md
-find mise/docs -name "*.md" -type f | while read file; do
-    echo -e "\n# $(basename "$file")\n" >> mise.md
-    cat "$file" >> mise.md
+# 必要なファイルを結合
+echo > $OUTPUT_FILE
+find "$CLONE_DIR/docs/" -name "*.md" -type f | while read file; do
+    echo -e "\n# $(basename "$file")\n" >> $OUTPUT_FILE
+    cat "$file" >> $OUTPUT_FILE
 done
+docker run --rm -v ./:/app thr3a/remove-markdown-links $OUTPUT_FILE --override
 
 # "**Source code**"の行を削除
 sed -i '/\*\*Source code\*\*/d' mise.md
 
-rm -rf mise
-
+# クローンしたディレクトリを削除
+# rm -rf "$CLONE_DIR"

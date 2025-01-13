@@ -22,9 +22,10 @@ fi
 echo > $OUTPUT_FILE
 find "$CLONE_DIR/docs/" -name "*.md" -type f ! -name "index.md" | while read file; do
     echo -e "\n# $(basename "$file")\n" >> $OUTPUT_FILE
+    # 先頭のYAML Front Matter（---で囲まれた部分）を除去
     cat "$file" | sed '1{/^---$/!q;};1,/^---$/d' >> $OUTPUT_FILE
 done
-docker run --rm -v ./:/app thr3a/remove-markdown-links index.md --override
+docker run --rm -v ./:/app thr3a/remove-markdown-links $OUTPUT_FILE --override
 
 # クローンしたディレクトリを削除
 # rm -rf "$CLONE_DIR"
