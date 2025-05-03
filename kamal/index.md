@@ -169,7 +169,7 @@ e.g., `kamal deploy -d staging`.
 In this case, the configuration will also be read from `config/deploy.staging.yml`
 and merged with the base configuration.
 
-## Anchors
+## Extensions
 
 Kamal will not accept unrecognized keys in the configuration file.
 
@@ -177,7 +177,7 @@ However, you might want to declare a configuration block using YAML anchors
 and aliases to avoid repetition.
 
 You can prefix a configuration section with `x-` to indicate that it is an
-anchor. Kamal will ignore the anchor and not raise an error. See Anchors for more information.
+extension. Kamal will ignore the extension and not raise an error.
 
 ## The service name
 
@@ -612,10 +612,31 @@ where `<service>` is the main service name from the root configuration:
 
 ## Image
 
-The Docker image to use, prefix it with a registry if not using Docker Hub:
+The Docker image to use.
+Prefix it with its server when using root level registry different from Docker Hub.
+Define registry directly or via anchors when it differs from root level registry.
 
 ```yaml
     image: mysql:8.0
+```
+
+## Registry
+
+By default accessories use Docker Hub registry.
+You can specify different registry per accessory with this option.
+Don't prefix image with this registry server.
+Use anchors if you need to set the same specific registry for several accessories.
+
+```yml
+registry:
+  <<: *specific-registry
+```
+
+See Docker Registry for more information:
+
+```yaml
+    registry:
+      ...
 ```
 
 ## Accessory hosts
@@ -722,7 +743,7 @@ Defaults to kamal:
 
 ## Proxy
 
-You can run your accessory behind the Kamal proxy. See Proxy for more information.
+You can run your accessory behind the Kamal proxy. See Proxy for more information
 
 ```yaml
     proxy:
@@ -1108,6 +1129,12 @@ The build driver to use, defaults to `docker-container`:
 
 ```yaml
   driver: docker
+```
+
+If you want to use Docker Build Cloud (https://www.docker.com/products/build-cloud/), you can set the driver to:
+
+```yaml
+  driver: cloud org-name/builder-name
 ```
 
 ## Provenance
@@ -1694,6 +1721,23 @@ kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
 kamal secrets extract MyItem/REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
 ```
 
+## Bitwarden Secrets Manager
+
+First, install and configure the Bitwarden Secrets Manager CLI.
+
+Use the adapter 'bitwarden-sm':
+
+```bash
+# Fetch all secrets that the machine account has access to
+kamal secrets fetch --adapter bitwarden-sm all
+
+# Fetch secrets from a project
+kamal secrets fetch --adapter bitwarden-sm MyProjectID/all
+
+# Extract the secret
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
 ## AWS Secrets Manager
 
 First, install and configure the AWS CLI.
@@ -1738,6 +1782,63 @@ kamal secrets extract DB_PASSWORD <SECRETS-FETCH-OUTPUT>
 Doppler organizes secrets in "projects" (like `my-awesome-project`) and "configs" (like `prod`, `stg`, etc), use the pattern `project/config` when defining the `--from` option.
 
 The doppler adapter does not use the `--account` option, if given it will be ignored.
+
+## GCP Secret Manager
+
+First, install and configure the gcloud CLI.
+
+The `--account` flag selects an account configured in `gcloud`, and the `--from` flag specifies the **GCP project ID** to be used. The string `default` can be used with the `--account` and `--from` flags to use `gcloud`'s default credentials and project, respectively.
+
+Use the adapter `gcp`:
+
+```bash
+# Fetch a secret with an explicit project name, credentials, and secret version:
+kamal secrets fetch --adapter=gcp --account=default --from=default my-secret/latest
+
+# The project name can be added as a prefix to the secret name instead of using --from:
+kamal secrets fetch --adapter=gcp --account=default default/my-secret/latest
+
+# The 'latest' version is used by default, so it can be omitted as well:
+kamal secrets fetch --adapter=gcp --account=default default/my-secret
+
+# If the default project is used, the prefix can also be left out entirely, leading to the simplest
+# way to fetch a secret using the default project and credentials, and the latest version of the
+# secret:
+kamal secrets fetch --adapter=gcp --account=default my-secret
+
+# Multiple secrets can be fetched at the same time.
+# Fetch `my-secret` and `another-secret` from the project `my-project`:
+kamal secrets fetch --adapter=gcp \
+  --account=default \
+  --from=my-project \
+  my-secret another-secret
+
+# Secrets can be fetched from multiple projects at the same time.
+# Fetch from multiple projects, using default to refer to the default project:
+kamal secrets fetch --adapter=gcp \
+  --account=default \
+  default/my-secret my-project/another-secret
+
+# Specific secret versions can be fetched.
+# Fetch version 123 of the secret `my-secret` in the default project (the default behavior is to
+# fetch `latest`)
+kamal secrets fetch --adapter=gcp \
+  --account=default \
+  default/my-secret/123
+
+# Credentials other than the default can also be used.
+# Fetch a secret using the `user@example.com` credentials:
+kamal secrets fetch --adapter=gcp \
+  --account=user@example.com \
+  my-secret
+
+# Service account impersonation and delegation chains are available.
+# Fetch a secret as `user@example.com`, impersonating `service-account@example.com` with
+# `delegate@example.com` as a delegate
+kamal secrets fetch --adapter=gcp \
+  --account="user@example.com|delegate@example.com,service-account@example.com" \
+  my-secret
+```
 
 # details.md
 
@@ -1974,7 +2075,7 @@ Returns the version of Kamal you have installed.
 
 ```bash
 $ kamal version
-2.4.0
+2.5.2
 ```
 
 # index.md
@@ -1992,12 +2093,15 @@ $ kamal build
 Commands:
   kamal build create          # Create a build setup
   kamal build deliver         # Build app and push app image to registry then pull image on servers
+  kamal build dev             # Build using the working directory, tag it as dirty, and push to local image store.
   kamal build details         # Show build setup
   kamal build help [COMMAND]  # Describe subcommands or one specific subcommand
   kamal build pull            # Pull app image from registry onto servers
   kamal build push            # Build and push app image to registry
   kamal build remove          # Remove build setup
 ```
+
+The `build dev` and `build push` commands also support an `--output` option which specifies where the image should be pushed. `build push` defaults to "registry", and `build dev` defaults to "docker" which is the local image store. Any exported type supported by the `docker buildx build` option `--output` is allowed.
 
 Examples:
 
@@ -2302,11 +2406,13 @@ You can also use pre-proxy-reboot and post-proxy-reboot hooks to remove and add 
 You can manage boot configuration for kamal-proxy with `kamal proxy boot_config`.
 
 ```bash
-$ kamal proxy boot_config --help
-Usage:
-  kamal proxy boot_config <set|get|clear>
+$ kamal proxy boot_config
+Commands:
+  kamal proxy boot_config set [OPTIONS]
+  kamal proxy boot_config get
+  kamal proxy boot_config reset
 
-Options:
+Options for 'set':
       [--publish], [--no-publish], [--skip-publish]   # Publish the proxy ports on the host
                                                       # Default: true
       [--http-port=N]                                 # HTTP port to publish on the host
