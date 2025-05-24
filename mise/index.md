@@ -1,18 +1,3 @@
-# external-resources.md
-
-# External Resources
-
-Links to articles, videos, and other resources that are relevant to mise.
-
-* 2025-01-12 - \[fr] Mise-En-Place: Simplifiez la Gestion de vos Environnements et Tâches – https://blog.stephane-robert.info/docs/developper/autres-outils/mise-en-place/
-* 2024-11-20 - Migrating from nvm to mise - https://dev.to/hverlin/migrating-from-nvm-to-mise-4mfp
-* 2024-06-27 - Managing Development Tool Versions with mise - https://haril.dev/en/blog/2024/06/27/Easy-devtools-version-management-mise
-* 2024-06-09 - Replacing pyenv, nvm, direnv with Mise - https://arunmozhi.in/2024/09/06/replacing-pyenv-nvm-direnv-with-mise
-* 2024-04-07 - Lalaluka stream: Grroxy, Cook, and jdx/mise - https://www.youtube.com/watch?v=zA1hjrLQiPw
-* 2024-01-14 - Manage all your runtime versions with one tool (asdf, mise) - https://blog.andreyfadeev.com/p/manage-all-your-runtime-versions
-* 2023-12-30 - You should be using mise - https://andrei-calazans.com/posts/you-should-be-using-rtx/
-* 2023-03-04 - Beginner's Guide to rtx (mise) - https://dev.to/jdxcode/beginners-guide-to-rtx-ac4
-
 # ide-integration.md
 
 # IDE Integration
@@ -84,10 +69,10 @@ Here is an example showing that VSCode will use `node` provided by `mise`:
 ::: tabs
 \=== VSCode
 
-![vscode using shims](./shims-vscode.png)
+
 
 \=== IntelliJ
-![intellij using shims](./shims-intellij.png)
+
 :::
 
 As mentioned above, using `shims` doesn't work with all mise features. For example, arbitrary env vars in `[env]` will
@@ -119,6 +104,8 @@ let $PATH = $HOME . '/.local/share/mise/shims:' . $PATH
 vim.env.PATH = vim.env.HOME .. "/.local/share/mise/shims:" .. vim.env.PATH
 ```
 
+For a better Treesitter and LSP integration, check out the neovim cookbook.
+
 ## emacs
 
 ### Traditional shims way
@@ -132,7 +119,7 @@ vim.env.PATH = vim.env.HOME .. "/.local/share/mise/shims:" .. vim.env.PATH
 
 ### Use with package mise.el
 
-https://github.com/liuyinz/mise.el
+https://github.com/eki3z/mise.el
 
 > A GNU Emacs library which uses the mise tool to determine per-directory/project environment variables and then set those environment variables on a per-buffer basis.
 
@@ -373,14 +360,12 @@ sudo apt install -y mise
 
 :::
 
-### aur
+### pacman
 
 For Arch Linux:
 
 ```sh
-git clone https://aur.archlinux.org/mise.git
-cd mise
-makepkg -si
+sudo pacman -S mise
 ```
 
 ### Cargo
@@ -406,13 +391,24 @@ cargo install mise --git https://github.com/jdx/mise --branch main
 
 ### dnf
 
-For Fedora, CentOS, Amazon Linux, RHEL and other dnf-based distributions:
+For Fedora 40, CentOS, Amazon Linux, RHEL and other dnf-based distributions:
 
 ```sh
 dnf install -y dnf-plugins-core
 dnf config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
 dnf install -y mise
 ```
+
+Fedora 41+ (dnf5)
+
+```sh
+dnf install -y dnf-plugins-core
+dnf config-manager addrepo --from-repofile=https://mise.jdx.dev/rpm/mise.repo
+dnf install -y mise
+```
+
+> \[!NOTE]
+> This repository maintains only the latest version of the mise CLI. Previous versions are removed and are not available once a new release is made.
 
 ### Docker
 
@@ -478,11 +474,6 @@ yum install -y mise
 
 ### Windows - Scoop
 
-> \[!NOTE]
-> We're currently waiting for mise to be merged to the Scoop main bucket:
->
-> * https://github.com/ScoopInstaller/Main/pull/6374
-
 This is the recommended way to install mise on Windows. It will automatically add your shims to PATH.
 
 ```sh
@@ -547,7 +538,7 @@ You will need to first create the parent directory if it does not exist.
 :::
 
 ```powershell
-echo '~/.local/bin/mise activate mise activate pwsh | Out-String | Invoke-Expression' >> $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+echo 'mise activate pwsh | Out-String | Invoke-Expression' >> $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
 ```
 
 ### Nushell
@@ -640,8 +631,8 @@ Then, run the following commands to install the completion script for your shell
 
 ```sh [bash]
 # This requires bash-completion to be installed
-mkdir -p /etc/bash_completion.d/
-mise completion bash --include-bash-completion-lib > /etc/bash_completion.d/mise
+mkdir -p ~/.local/share/bash-completion/
+mise completion bash --include-bash-completion-lib > ~/.local/share/bash-completion/mise
 ```
 
 ```sh [zsh]
@@ -949,7 +940,7 @@ mise run <TAB>
 ## CWD
 
 mise sets the current working directory to the directory of `mise.toml` before running tasks.
-This can be overridden by setting `dir="{{cwd}}"` in the task header:
+This can be overridden by setting <span v-pre>`dir="{{cwd}}"`</span> in the task header:
 
 ```bash
 #!/usr/bin/env bash
@@ -1003,7 +994,7 @@ run = ["echo hello"]
 
 ### `run_windows`
 
-An alterative script to run when `mise run` is executed on windows:
+An alternative script to run when `mise run` is executed on windows:
 
 ```toml
 [tasks.build]
@@ -1135,6 +1126,20 @@ tasks you don't want others to easily see.
 [tasks.internal]
 hide = true
 run = "echo my internal task"
+```
+
+### `confirm`
+
+* **Type**: `string`
+
+A message to show before running the task. This is useful for tasks that are destructive or take a long
+time to run. The user will be prompted to confirm before the task is run.
+
+```toml
+[tasks.release]
+confirm = "Are you sure you want to cut a release?"
+description = 'Cut a new release'
+file = 'scripts/release.sh'
 ```
 
 ### `raw`
@@ -1358,7 +1363,7 @@ Secrets are also supported as vars.
 
 Tasks can be defined in `mise.toml` files in different ways:
 
-```toml
+```toml [mise.toml]
 [tasks.cleancache]
 run = "rm -rf .cache"
 hide = true # hide this task from the list
@@ -1395,8 +1400,24 @@ description = 'Run CI tasks'
 depends = ['build', 'lint', 'test']
 
 [tasks.release]
+confirm = 'Are you sure you want to cut a new release?'
 description = 'Cut a new release'
 file = 'scripts/release.sh' # execute an external script
+```
+
+You can use environment variables or `vars` to define common arguments:
+
+```toml [mise.toml]
+[env]
+VERBOSE_ARGS = '--verbose'
+
+# Vars can be shared between tasks like environment variables,
+# but they are not passed as environment variables to the scripts
+[vars]
+e2e_args = '--headless'
+
+[tasks.test]
+run = './scripts/test-e2e.sh {{vars.e2e_args}} $VERBOSE_ARGS'
 ```
 
 ## Adding tasks
@@ -1448,8 +1469,8 @@ run_windows = 'cargo test --features windows'
 
 ### Specifying which directory to use
 
-Tasks are executed with `cwd` set to the directory containing `mise.toml`. You can use the directory
-from where the task was run with `dir = "{{cwd}}"`:
+The `dir` property determines the `cwd` in which the task is executed. You can use the directory
+from where the task was run with <span v-pre>`dir = "{{cwd}}"`</span>:
 
 ```toml
 [tasks.test]
@@ -1471,7 +1492,7 @@ alias = 'b' # `mise run b`
 ```
 
 * This alias can be used to run the task
-* The description will be displayed when running `mise tasks ls` or `mise run`\` with no arguments.
+* The description will be displayed when running `mise tasks ls` or `mise run` with no arguments.
 
 ```shell
 ❯ mise run
@@ -1523,6 +1544,17 @@ outputs = ['target/debug/mycli']
 ```
 
 You can use `sources` alone if with `mise watch` to run the task when the sources change.
+
+### Confirmation
+
+A message to show before running the task. The user will be prompted to confirm before the task is run.
+
+```toml
+[tasks.release]
+confirm = 'Are you sure you want to cut a new release?'
+description = 'Cut a new release'
+file = 'scripts/release.sh'
+```
 
 ## Specifying a shell or an interpreter {#shell-shebang}
 
@@ -1690,15 +1722,54 @@ file = 'scripts/release.sh' # execute an external script
 
 ### Remote tasks
 
-Task files can be fetched via http:
+Task files can be fetched remotely with multiple protocols:
+
+#### HTTP
 
 ```toml
 [tasks.build]
 file = "https://example.com/build.sh"
 ```
 
-Currently, they're fetched everytime they're executed, but we may add some cache support later.
-This could be extended with other protocols like mentioned in this ticket if there were interest.
+Please note that the file will be downloaded and executed. Make sure you trust the source.
+
+#### Git <Badge type="warning" text="experimental" />
+
+::: code-group
+
+```toml [ssh]
+[tasks.build]
+file = "git::ssh://git@github.com/myorg/example.git//myfile?ref=v1.0.0"
+```
+
+```toml [https]
+[tasks.build]
+file = "git::https://github.com/myorg/example.git//myfile?ref=v1.0.0"
+```
+
+:::
+
+Url format must follow these patterns `git::<protocol>://<url>//<path>?<ref>`
+
+Required fields:
+
+* `protocol`: The git repository URL.
+* `url`: The git repository URL.
+* `path`: The path to the file in the repository.
+
+Optional fields:
+
+* `ref`: The git reference (branch, tag, commit).
+
+#### Cache
+
+Each task file is cached in the `MISE_CACHE_DIR` directory. If the file is updated, it will not be re-downloaded unless the cache is cleared.
+
+:::tip
+You can reset the cache by running `mise cache clear`.
+:::
+
+You can use the `MISE_TASK_REMOTE_NO_CACHE` environment variable to disable caching of remote tasks.
 
 ## Arguments
 
@@ -1778,7 +1849,7 @@ Examples:
 
 ```toml
 [tasks.echo]
-run = 'echo {{flag(name=("myflag")}}'
+run = 'echo {{flag(name="myflag")}}'
 # execute: mise run echo --myflag
 # runs: echo true
 ```
@@ -1815,7 +1886,44 @@ run = 'echo {{arg(name="user")}}'
 hide = true
 quiet = true # this is mandatory to make completion work (makes the mise command just print "alice bob charlie")
 description = "List users"
-run = 'echo "alice bob charlie"'
+run = 'echo "alice\nbob\ncharlie"'
+```
+
+Arguments and flags defined in the usage spec are also set in the environment before running each script defined in the `run` field. The name of each variable is prepended with `usage_` keyword.
+
+```toml
+[tasks.usage-env-example]
+usage = '''
+arg "myarg" "myarg description" default="foo"
+'''
+run = 'echo myarg=$usage_myarg'
+
+# execute: mise run usage-env-example
+# outputs: myarg=foo
+
+# execute: mise run usage-env-example bar
+# outputs: myarg=bar
+```
+
+```toml
+[tasks.usage-env-example]
+usage = '''
+flag "-m --myflag <myflag>" default="false"
+'''
+run = [
+'echo "Command 1: $usage_myflag"',
+'echo "Command 2: {{flag(name="myflag", default="false")}} $usage_myflag"',
+]
+
+# execute: mise run usage-env-example
+# outputs:
+# Command 1: false
+# Command 2: false false
+
+# execute: mise run usage-env-example --myflag true
+# outputs:
+# Command 1: true
+# Command 2: true true
 ```
 
 # index.md
@@ -1853,7 +1961,7 @@ run = "cargo build"
 
 You can then run the task with `mise run build` (or `mise build` if it doesn't conflict with an existing command).
 
-* See the TOML tasks for more information.
+* See TOML tasks for more information.
 * See Running Tasks to learn how to run tasks.
 
 ## File Tasks
@@ -1902,7 +2010,7 @@ label. By printing line-by-line we avoid interleaving output from parallel execu
 To just print stdout/stderr directly, use `--interleave`, the `task_output` setting, or `MISE_TASK_OUTPUT=interleave`.
 
 Stdin is not read by default. To enable this, set `raw = true` on the task that needs it. This will prevent
-it running in parallel with any other task-a RWMutex will get a write lock in this case.
+it running in parallel with any other task-a RWMutex will get a write lock in this case. This also prevents redactions applied to the output.
 
 Extra arguments will be passed to the task, for example, if we want to run in release mode:
 
@@ -2006,6 +2114,48 @@ This may change in the future.)
 Tasks can be run with `mise run <TASK>` or `mise <TASK>`—if the name doesn't conflict with a mise command.
 Because mise may later add a command with a conflicting name, it's recommended to use `mise run <TASK>` in
 scripts and documentation.
+
+## Execution order
+
+You can use depends, wait\_for and depends\_post to control the order of execution.
+
+```toml
+[tasks.build]
+run = "echo 'build'"
+
+[tasks.test]
+run = "echo 'test'"
+depends = ["build"]
+```
+
+This will ensure that the `build` task is run before the `test` task.
+
+You can also define a mise task to run other tasks sequentially (or in series).
+You can do this by calling `mise run <task>` in the `run` property of a task.
+
+```toml
+[tasks.example1]
+run = "echo 'example1'"
+
+[tasks.example2]
+run = "mise example2"
+
+[tasks.one_by_one]
+run = [
+    'mise run example1',
+    'mise run example2',
+]
+```
+
+This assumes that `mise` is in your `PATH`. If you are using mise generate bootstrap or if `mise` is not on `PATH`, it's better to use <span v-pre>`{{mise_bin}}`</span> instead of `mise` in the task definition.
+
+```toml
+[tasks.one_by_one]
+run = [
+    '{{mise_bin}} run example1',
+    '{{mise_bin}} run example2',
+]
+```
 
 # templates.md
 
@@ -2138,6 +2288,7 @@ These variables offer key information about the current environment:
 * `config_root: PathBuf` – Locates the directory containing your `mise.toml` file, or in the case of something like `~/src/myproj/.config/mise.toml`, it will point to `~/src/myproj`.
 * `mise_bin: String` - Points to the path to the current mise executable
 * `mise_pid: String` - Points to the pid of the current mise process
+* `mise_env: String` - The configuration environment as specified by `MISE_ENV`, `-E`, or `--env`. Will be undefined if the configuration environment is not set.
 * `xdg_cache_home: PathBuf` - Points to the directory of XDG cache home
 * `xdg_config_home: PathBuf` - Points to the directory of XDG config home
 * `xdg_data_home: PathBuf` - Points to the directory of XDG data home
@@ -2232,11 +2383,11 @@ Some filters:
   elements in an array.
 * `str | urlencode -> String` – Encodes a string to be safely used in URLs,
   converting special characters to percent-encoded values.
-* `str | map(attribute) -> Array` – Extracts an attribute from each object
+* `arr | map(attribute) -> Array` – Extracts an attribute from each object
   in an array.
-* `str | concat(with) -> Array` – Appends values to an array.
-* `str | abs -> Number` – Returns the absolute value of a number.
-* `str | filesizeformat -> String` – Converts an integer into
+* `arr | concat(with) -> Array` – Appends values to an array.
+* `num | abs -> Number` – Returns the absolute value of a number.
+* `num | filesizeformat -> String` – Converts an integer into
   a human-readable file size (e.g., 110 MB).
 * `str | date(format) -> String` – Converts a timestamp to
   a formatted date string using the provided format,
@@ -2281,7 +2432,7 @@ construct a file path:
 
 ```toml
 [env]
-PROJECT_CONFIG = "{{ config_root | concat(with='bar.txt') | join_path }}"
+PROJECT_CONFIG = "{{ [config_root] | concat(with='bar.txt') | join_path }}"
 ```
 
 #### String Manipulation
@@ -2637,17 +2788,18 @@ import Settings from '/components/settings.vue';
 > manages *environment variables* for
 > different project directories.
 
-Use mise to specify environment variables used for different projects. Create a `mise.toml` file
-in the root of your project directory:
+Use mise to specify environment variables used for different projects.
 
-```toml
+To get started, create a `mise.toml` file in the root of your project directory:
+
+```toml [mise.toml]
 [env]
 NODE_ENV = 'production'
 ```
 
 To clear an env var, set it to `false`:
 
-```toml
+```toml [mise.toml]
 [env]
 NODE_ENV = false # unset a previously set NODE_ENV
 ```
@@ -2655,13 +2807,76 @@ NODE_ENV = false # unset a previously set NODE_ENV
 You can also use the CLI to get/set env vars:
 
 ```sh
-$ mise set NODE_ENV=development
-$ mise set NODE_ENV
-development
-$ mise set
-key       value        source
-NODE_ENV  development  mise.toml
-$ mise unset NODE_ENV
+mise set NODE_ENV=development
+# mise set NODE_ENV
+# development
+
+mise set
+# key       value        source
+# NODE_ENV  development  mise.toml
+
+cat mise.toml
+# [env]
+# NODE_ENV = 'development'
+
+mise unset NODE_ENV
+```
+
+Additionally, the mise env \[--json] \[--dotenv] command can be used to export the environment variables in various formats (including `PATH` and environment variables set by tools or plugins).
+
+## Using environment variables
+
+Environment variables are available when using `mise x|exec`, or with `mise r|run` (i.e. with tasks):
+
+```shell
+mise set MY_VAR=123
+mise exec -- echo $MY_VAR
+# 123
+```
+
+You can of course combine them with tools:
+
+```sh
+mise use node@22
+mise set MY_VAR=123
+cat mise.toml
+# [tools]
+# node = '22'
+# [env]
+# MY_VAR = '123'
+mise exec -- node --eval 'console.log(process.env.MY_VAR)'
+# 123
+```
+
+If mise is activated, it will automatically set environment variables in the current shell session when you `cd` into a directory.
+
+```shell
+cd /path/to/project
+mise set NODE_ENV=production
+cat mise.toml
+# [env]
+# NODE_ENV = 'production'
+
+echo $NODE_ENV
+# production
+```
+
+If you are using `shims`, the environment variables will be available when using the shim:
+
+```shell
+mise set NODE_ENV=production
+mise use node@22
+# using the absolute path for the example
+~/.local/share/mise/shims/node --eval 'console.log(process.env.NODE_ENV)'
+```
+
+Finally, you can also use `mise en` to start a new shell session with the environment variables set.
+
+```shell
+mise set FOO=bar
+mise en
+> echo $FOO
+# bar
 ```
 
 ## Lazy eval
@@ -2968,7 +3183,7 @@ Here is an example script you can use to migrate your global `.tool-versions` fi
 
 ```shell
 mv ~/.tool-versions ~/.tool-versions.bak
-cat ~/.tool-versions.bak | tr ' ' '@' | xargs -n2 mise use -g
+cat ~/.tool-versions.bak | tr -s ' ' | tr ' ' '@' | xargs -n2 mise use -g
 ```
 
 Once you are comfortable with mise, you can remove the `.tool-versions.bak` file and uninstall `asdf`
@@ -3021,9 +3236,15 @@ usage (https://usage.jdx.dev/) is a spec and CLI for defining CLI tools.
 
 Arguments, flags, environment variables, and config files can all be defined in a Usage spec. It can be thought of like OpenAPI (swagger) for CLIs.
 
-`usage` can be installed with `mise` using `mise use -g usage` and is required to get the autocompetion working. See autocompletion.
+`usage` can be installed with `mise` using `mise use -g usage` and is required to get the autocompletion working. See autocompletion.
 
 You can leverage usage in file tasks to get auto-completion working, see file tasks arguments.
+
+## VSCode for windows extension with error `spawn EINVAL`
+
+In VSCode, many extensions will throw an "error spawn EINVAL" due to a Node.js security fix.
+
+You can change windows\_shim\_mode to `hardlink` or `symlink`
 
 # python.md
 
@@ -3072,6 +3293,115 @@ run = '''
 echo "Project: $PROJECT_NAME"
 echo "Virtual Environment: $VIRTUAL_ENV"
 '''
+```
+
+## mise + uv
+
+If you are using a `uv` project initialized with `uv init .`, here is how you can use it with mise.
+
+Here is how the `uv` project will look like:
+
+```shell [uv-project]
+.
+├── .gitignore
+├── .python-version
+├── hello.py
+├── pyproject.toml
+└── README.md
+
+cat .python-version
+# 3.12
+```
+
+If you run `uv run hello.py` in the `uv` project, `uv` will automatically create a virtual environment for you using the python version specified in the `.python-version` file. This will also create a `uv.lock` file.
+
+`mise` will detect the python version in `.python-version`, however, it won't use the virtual env created by `uv` by default. So, using `which python` will show a global python installation from `mise`.
+
+```shell
+mise i
+which python
+# ~/.local/share/mise/installs/python/3.12.4/bin/python
+```
+
+If you want `mise` to use the virtual environment created by `uv`, you can set the `python.uv_venv_auto` setting to `true` in your `mise.toml` file.
+
+```toml [mise.toml]
+[settings]
+python.uv_venv_auto = true
+```
+
+Using `which python` will now show the python version from the virtual environment created by `uv`.
+
+```shell
+which python
+# ./uv-project/.venv/bin/python
+```
+
+Another option is to use `_.python.venv` in your `mise.toml` file to specify the path to the virtual environment created by `uv`.
+
+```toml [mise.toml]
+[env]
+_.python.venv = { path = ".venv" }
+```
+
+### Syncing python versions installed by mise and uv
+
+You can use mise sync python --uv to sync the python version installed by `mise` with the python version specified in the `.python-version` file in the `uv` project.
+
+### uv scripts
+
+You can take advantage of `uv run` in `shebang` in toml or file tasks.
+Note that using `--script` is required if the filename does not end in `.py`.
+
+Here is an example toml task:
+
+```toml [mise.toml]
+[tools]
+uv = 'latest'
+
+[tasks.print_peps]
+run = """
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["requests<3", "rich"]
+# ///
+
+import requests
+from rich.pretty import pprint
+
+resp = requests.get("https://peps.python.org/api/peps.json")
+data = resp.json()
+pprint([(k, v["title"]) for k, v in data.items()][:10])
+"""
+```
+
+Or as a file task:
+
+```python [mise-tasks/print_peps.py]
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["requests<3", "rich"]
+# ///
+
+import requests
+from rich.pretty import pprint
+
+resp = requests.get("https://peps.python.org/api/peps.json")
+data = resp.json()
+pprint([(k, v["title"]) for k, v in data.items()][:10])
+```
+
+You can then run it with `mise run print_peps`:
+
+```shell
+❯ mise run print_peps
+[print_peps] $ ~/uv-project/mise-tasks/print_peps.py
+Installed 9 packages in 8ms
+[
+│   ('1', 'PEP Purpose and Guidelines'),
+│   ('2', 'Procedure for Adding New Modules'),
+    #...
+]
 ```
 
 # terraform.md
@@ -3136,12 +3466,118 @@ Here we are sharing a few mise setups that other people have found useful.
 * Python
 * Ruby
 * Terraform
+* Neovim
 
 Finally, here is how to create presets and some shell tricks you might find useful.
 
 ## Contributing
 
 If you would like to share your setup, please share it in this cookbook thread.
+
+# neovim.md
+
+# Mise + Neovim Cookbook
+
+Here are some tips for an improved mise workflow with Neovim.
+
+## Code highlight for run commands
+
+Use Treesitter to highlight code in the run commands of your mise files as shown on the left side of the image:
+
+
+
+In your neovim config, create a `after/queries/toml/injections.scm` file with these queries:
+
+```scm
+; extends
+
+(pair
+  (bare_key) @key (#eq? @key "run")
+  (string) @injection.content @injection.language
+
+  (#is-mise?)
+  (#match? @injection.language "^['\"]{3}\n*#!(/\\w+)+/env\\s+\\w+") ; multiline shebang using env
+  (#gsub! @injection.language "^.*#!/.*/env%s+([^%s]+).*" "%1") ; extract lang
+  (#offset! @injection.content 0 3 0 -3) ; rm quotes
+)
+
+(pair
+  (bare_key) @key (#eq? @key "run")
+  (string) @injection.content @injection.language
+
+  (#is-mise?)
+  (#match? @injection.language "^['\"]{3}\n*#!(/\\w+)+\s*\n") ; multiline shebang
+  (#gsub! @injection.language "^.*#!/.*/([^/%s]+).*" "%1") ; extract lang
+  (#offset! @injection.content 0 3 0 -3) ; rm quotes
+)
+
+(pair
+  (bare_key) @key (#eq? @key "run")
+  (string) @injection.content
+
+  (#is-mise?)
+  (#match? @injection.content "^['\"]{3}\n*.*") ; multiline
+  (#not-match? @injection.content "^['\"]{3}\n*#!") ; no shebang
+  (#offset! @injection.content 0 3 0 -3) ; rm quotes
+  (#set! injection.language "bash") ; default to bash
+)
+
+(pair
+  (bare_key) @key (#eq? @key "run")
+  (string) @injection.content
+
+  (#is-mise?)
+  (#not-match? @injection.content "^['\"]{3}") ; not multiline
+  (#offset! @injection.content 0 1 0 -1) ; rm quotes
+  (#set! injection.language "bash") ; default to bash
+)
+```
+
+To only apply the highlighting on mise files instead of all toml files, the `is-mise?` predicate is used. If you don't care for this distinction, the lines containing `(#is-mise?)` can be removed.
+Otherwise, make sure to also create the predicate somewhere in your neovim config.
+
+For example, using `lazy.nvim`:
+
+```lua
+{
+  "nvim-treesitter/nvim-treesitter",
+  init = function()
+    require("vim.treesitter.query").add_predicate("is-mise?", function(_, _, bufnr, _)
+      local filepath = vim.api.nvim_buf_get_name(tonumber(bufnr) or 0)
+      local filename = vim.fn.fnamemodify(filepath, ":t")
+      return string.match(filename, ".*mise.*%.toml$") ~= nil
+    end, { force = true, all = false })
+  end,
+},
+```
+
+This will consider any `toml` file containing `mise` in its name as a mise file.
+
+## Enable LSP for embedded lang in run commands
+
+Use `otter.nvim` to enable LSP features and code completion for code embedded in your mise files.
+
+Again using `lazy.nvim`:
+
+```lua
+{
+  "jmbuhr/otter.nvim",
+  dependencies = {
+    "nvim-treesitter/nvim-treesitter",
+  },
+  config = function()
+    vim.api.nvim_create_autocmd({ "FileType" }, {
+      pattern = { "toml" },
+      group = vim.api.nvim_create_augroup("EmbedToml", {}),
+      callback = function()
+        require("otter").activate()
+      end,
+    })
+  end,
+},
+```
+
+This will only work if the TS injection queries are also set up.
 
 # ruby.md
 
@@ -3220,6 +3656,28 @@ add-zsh-hook precmd _prompt
 ```
 
 Now, when mise makes any updates to the environment the prompt will go blue.
+
+## Current configuration environment in powerline-go prompt
+
+powerline-go's
+`shell-var` segment can be used to display the value of an environment
+variable in the prompt.
+The current mise configuration environment,
+`MISE_ENV` is a good candidate for this.
+
+Mostly, it is as one would expect: include `shell-var` in `-modules`,
+and `-shell-var MISE_ENV -shell-var-no-warn-empty` in arguments,
+and make sure `MISE_ENV` is exported so `powerline-go` can "see" it.
+
+A gotcha as of February 2025 is that the `shell-var` module does not
+tolerate *unset* (as opposed to empty) environment variables.
+To work around this, set `MISE_ENV` to an empty value early in the shell
+startup scripts, and avoid manually `unset`ing it.
+For example for bash, typically in `~/.bashrc`:
+
+```bash
+export MISE_ENV=
+```
 
 ## Inspect what changed after mise hook
 
@@ -3375,9 +3833,37 @@ root@75f179a190a1:/mise# mise prune --yes
 
 Here are some tips on managing Node.js projects with mise.
 
+## Getting started with Node.js
+
+To install Node.JS, in a directory, you can use the following command:
+
+```shell
+mise use node
+```
+
+This will install the latest version of Node.js and create a `mise.toml` file with the following content:
+
+```toml
+node = "latest"
+```
+
+If you want to install Node.JS globally instead (for example, node v22), you can use the following command:
+
+```shell
+mise use -g node@22
+```
+
 ## Add node modules binaries to the PATH
 
-A nice trick you can use is to add the node modules binaries to the PATH. This will make CLIs installed with npm available without `npx`.
+When installing Node.js packages specified in `package.json`, you typically need to use `npx` or the full path to the binary. For example:
+
+```shell
+npm install --save eslint
+eslint --version # doesn't work
+npx eslint --version # works
+```
+
+Thanks to `mise`, you can add the node modules binaries to the `PATH`. This will make CLIs installed with npm available without `npx`.
 
 ```toml [mise.toml]
 [env]
@@ -3460,7 +3946,7 @@ node = '22'
 [hooks]
 # Enabling corepack will install the `pnpm` package manager specified in your package.json
 # alternatively, you can also install `pnpm` with mise
-post_install = 'npx corepack enable'
+postinstall = 'npx corepack enable'
 
 [env]
 _.path = ['./node_modules/.bin']
@@ -3567,7 +4053,7 @@ TODO
 
 # `mise uninstall`
 
-* **Usage**: `mise uninstall [-a --all] [-n --dry-run] [INSTALLED_TOOL@VERSION]...`
+* **Usage**: `mise uninstall [-a --all] [-n --dry-run] [INSTALLED_TOOL@VERSION]…`
 * **Source code**: `src/cli/uninstall.rs`
 
 Removes installed tool versions
@@ -3576,7 +4062,7 @@ This only removes the installed version, it does not modify mise.toml.
 
 ## Arguments
 
-### `[INSTALLED_TOOL@VERSION]...`
+### `[INSTALLED_TOOL@VERSION]…`
 
 Tool(s) to remove
 
@@ -3842,6 +4328,67 @@ $ mise trust ~/some_dir/mise.toml
 $ mise trust
 ```
 
+# search.md
+
+# `mise search`
+
+* **Usage**: `mise search [FLAGS] [NAME]`
+* **Source code**: `src/cli/search.rs`
+
+Search for tools in the registry
+
+This command searches a tool in the registry.
+
+By default, it will show all tools that fuzzy match the search term. For
+non-fuzzy matches, use the `--match-type` flag.
+
+## Arguments
+
+### `[NAME]`
+
+The tool to search for
+
+## Flags
+
+### `-i --interactive`
+
+Show interactive search
+
+### `-m --match-type <MATCH_TYPE>`
+
+Match type: equal, contains, or fuzzy
+
+**Choices:**
+
+* `equal`
+* `contains`
+* `fuzzy`
+
+### `--no-header`
+
+Don't display headers
+
+Examples:
+
+```
+$ mise search jq
+Tool  Description
+jq    Command-line JSON processor. https://github.com/jqlang/jq
+jqp   https://github.com/noahgorstein/jqp
+jiq   https://github.com/fiatjaf/jiq
+gojq  https://github.com/itchyny/gojq
+
+$ mise search --interactive
+Tool
+Search a tool
+❯ jq    Command-line JSON processor. https://github.com/jqlang/jq
+  jqp   https://github.com/noahgorstein/jqp
+  jiq   https://github.com/fiatjaf/jiq
+  gojq  https://github.com/itchyny/gojq
+/jq 
+esc clear filter • enter confirm
+```
+
 # get.md
 
 # `mise alias get`
@@ -3972,7 +4519,7 @@ node  lts-jod      22
 
 # `mise prune`
 
-* **Usage**: `mise prune [FLAGS] [INSTALLED_TOOL]...`
+* **Usage**: `mise prune [FLAGS] [INSTALLED_TOOL]…`
 * **Source code**: `src/cli/prune.rs`
 
 Delete unused versions of tools
@@ -3986,7 +4533,7 @@ You can list prunable tools with `mise ls --prunable`
 
 ## Arguments
 
-### `[INSTALLED_TOOL]...`
+### `[INSTALLED_TOOL]…`
 
 Prune only these tools
 
@@ -4010,6 +4557,50 @@ Examples:
 $ mise prune --dry-run
 rm -rf ~/.local/share/mise/versions/node/20.0.0
 rm -rf ~/.local/share/mise/versions/node/20.0.1
+```
+
+# test-tool.md
+
+# `mise test-tool`
+
+* **Usage**: `mise test-tool [FLAGS] [TOOL]`
+* **Source code**: `src/cli/test_tool.rs`
+
+Test a tool installs and executes
+
+## Arguments
+
+### `[TOOL]`
+
+Tool name to test
+
+## Flags
+
+### `-a --all`
+
+Test every tool specified in registry.toml
+
+### `--all-config`
+
+Test all tools specified in config files
+
+### `--include-non-defined`
+
+Also test tools not defined in registry.toml, guessing how to test it
+
+### `-j --jobs <JOBS>`
+
+Number of jobs to run in parallel
+\[default: 4]
+
+### `--raw`
+
+Directly pipe stdin/stdout/stderr from plugin to user Sets --jobs=1
+
+Examples:
+
+```
+mise test-tool ripgrep
 ```
 
 # settings.md
@@ -4139,7 +4730,7 @@ $ mise tasks info test --json
 
 # `mise tasks add`
 
-* **Usage**: `mise tasks add [FLAGS] <TASK> [-- RUN]...`
+* **Usage**: `mise tasks add [FLAGS] <TASK> [-- RUN]…`
 * **Source code**: `src/cli/tasks/add.rs`
 
 Create a new task
@@ -4150,7 +4741,7 @@ Create a new task
 
 Tasks name to add
 
-### `[-- RUN]...`
+### `[-- RUN]…`
 
 ## Flags
 
@@ -4158,15 +4749,15 @@ Tasks name to add
 
 Description of the task
 
-### `-a --alias... <ALIAS>`
+### `-a --alias… <ALIAS>`
 
 Other names for the task
 
-### `--depends-post... <DEPENDS_POST>`
+### `--depends-post… <DEPENDS_POST>`
 
 Dependencies to run after the task runs
 
-### `-w --wait-for... <WAIT_FOR>`
+### `-w --wait-for… <WAIT_FOR>`
 
 Wait for these tasks to complete if they are to run
 
@@ -4182,11 +4773,11 @@ Hide the task from `mise task` and completions
 
 Directly connect stdin/stdout/stderr
 
-### `-s --sources... <SOURCES>`
+### `-s --sources… <SOURCES>`
 
 Glob patterns of files this task uses as input
 
-### `--outputs... <OUTPUTS>`
+### `--outputs… <OUTPUTS>`
 
 Glob patterns of files this task creates, to skip if they are not modified
 
@@ -4202,7 +4793,7 @@ Do not print the command before running
 
 Do not print the command or its output
 
-### `-d --depends... <DEPENDS>`
+### `-d --depends… <DEPENDS>`
 
 Add dependencies to the task
 
@@ -4224,14 +4815,14 @@ mise task add pre-commit --depends "test" --depends "render" -- echo pre-commit
 
 # `mise tasks deps`
 
-* **Usage**: `mise tasks deps [--hidden] [--dot] [TASKS]...`
+* **Usage**: `mise tasks deps [--hidden] [--dot] [TASKS]…`
 * **Source code**: `src/cli/tasks/deps.rs`
 
 Display a tree visualization of a dependency graph
 
 ## Arguments
 
-### `[TASKS]...`
+### `[TASKS]…`
 
 Tasks to show dependencies for
 Can specify multiple tasks by separating with spaces
@@ -4264,7 +4855,7 @@ $ mise tasks deps --dot
 
 # `mise tasks run`
 
-* **Usage**: `mise tasks run [FLAGS] [TASK] [ARGS]...`
+* **Usage**: `mise tasks run [FLAGS] [TASK] [ARGS]…`
 * **Aliases**: `r`
 * **Source code**: `src/cli/tasks/run.rs`
 
@@ -4308,7 +4899,7 @@ e.g.: mise run task1 arg1 arg2 ::: task2 arg1 arg2
 
 **Default:** `default`
 
-### `[ARGS]...`
+### `[ARGS]…`
 
 Arguments to pass to the tasks. Use ":::" to separate tasks
 
@@ -4338,7 +4929,7 @@ Defaults to `sh -c -o errexit -o pipefail` on unix, and `cmd /c` on Windows
 Can also be set with the setting `MISE_UNIX_DEFAULT_INLINE_SHELL_ARGS` or `MISE_WINDOWS_DEFAULT_INLINE_SHELL_ARGS`
 Or it can be overridden with the `shell` property on a task.
 
-### `-t --tool... <TOOL@VERSION>`
+### `-t --tool… <TOOL@VERSION>`
 
 Tool(s) to run in addition to what is in mise.toml files e.g.: node@20 python@3.10
 
@@ -4351,6 +4942,7 @@ Configure with `jobs` config or `MISE_JOBS` env var
 ### `-r --raw`
 
 Read/write directly to stdin/stdout/stderr instead of by line
+Redactions are not applied with this option
 Configure with `raw` config or `MISE_RAW` env var
 
 ### `--no-timings`
@@ -4378,6 +4970,8 @@ Change how tasks information is output when running tasks
 * `keep-order` - Print stdout/stderr by line, prefixed with the task's label, but keep the order of the output
 * `quiet` - Don't show extra output
 * `silent` - Don't show any output including stdout and stderr from the task except for errors
+
+### `--no-cache`
 
 Examples:
 
@@ -4447,17 +5041,29 @@ tasks will override the global ones if they have the same name.
 
 ## Flags
 
-### `--no-header`
-
-Do not print table header
-
 ### `-x --extended`
 
 Show all columns
 
+### `--no-header`
+
+Do not print table header
+
 ### `--hidden`
 
 Show hidden tasks
+
+### `-g --global`
+
+Only show global tasks
+
+### `-J --json`
+
+Output in JSON format
+
+### `-l --local`
+
+Only show non-global tasks
 
 ### `--sort <COLUMN>`
 
@@ -4478,10 +5084,6 @@ Sort order. Default is asc.
 
 * `asc`
 * `desc`
-
-### `-J --json`
-
-Output in JSON format
 
 Examples:
 
@@ -4536,7 +5138,7 @@ $ mise install-into node@20.0.0 ./mynode && ./mynode/bin/node -v
 
 # `mise cache prune`
 
-* **Usage**: `mise cache prune [--dry-run] [-v --verbose...] [PLUGIN]...`
+* **Usage**: `mise cache prune [--dry-run] [-v --verbose…] [PLUGIN]…`
 * **Aliases**: `p`
 * **Source code**: `src/cli/cache/prune.rs`
 
@@ -4547,7 +5149,7 @@ Change this with the MISE\_CACHE\_PRUNE\_AGE environment variable.
 
 ## Arguments
 
-### `[PLUGIN]...`
+### `[PLUGIN]…`
 
 Plugin(s) to clear cache for e.g.: node, python
 
@@ -4557,7 +5159,7 @@ Plugin(s) to clear cache for e.g.: node, python
 
 Just show what would be pruned
 
-### `-v --verbose...`
+### `-v --verbose…`
 
 Show pruned files
 
@@ -4565,7 +5167,7 @@ Show pruned files
 
 # `mise cache clear`
 
-* **Usage**: `mise cache clear [PLUGIN]...`
+* **Usage**: `mise cache clear [PLUGIN]…`
 * **Aliases**: `c`
 * **Source code**: `src/cli/cache/clear.rs`
 
@@ -4573,7 +5175,7 @@ Deletes all cache files in mise
 
 ## Arguments
 
-### `[PLUGIN]...`
+### `[PLUGIN]…`
 
 Plugin(s) to clear cache for e.g.: node, python
 
@@ -4720,6 +5322,7 @@ If not provided, the nearest mise.toml file will be used
 * `float`
 * `bool`
 * `list`
+* `set`
 
 Examples:
 
@@ -4797,7 +5400,7 @@ Path                        Tools
 
 # `mise plugins uninstall`
 
-* **Usage**: `mise plugins uninstall [-p --purge] [-a --all] [PLUGIN]...`
+* **Usage**: `mise plugins uninstall [-p --purge] [-a --all] [PLUGIN]…`
 * **Aliases**: `remove`, `rm`
 * **Source code**: `src/cli/plugins/uninstall.rs`
 
@@ -4805,7 +5408,7 @@ Removes a plugin
 
 ## Arguments
 
-### `[PLUGIN]...`
+### `[PLUGIN]…`
 
 Plugin(s) to remove
 
@@ -4864,25 +5467,25 @@ Install all missing plugins
 This will only install plugins that have matching shorthands.
 i.e.: they don't need the full git repo url
 
-### `-v --verbose...`
+### `-v --verbose…`
 
 Show installation output
 
 Examples:
 
 ```
-# install the node via shorthand
-$ mise plugins install node
+# install the poetry via shorthand
+$ mise plugins install poetry
 
-# install the node plugin using a specific git url
-$ mise plugins install node https://github.com/mise-plugins/rtx-nodejs.git
+# install the poetry plugin using a specific git url
+$ mise plugins install poetry https://github.com/mise-plugins/mise-poetry.git
 
-# install the node plugin using the git url only
-# (node is inferred from the url)
-$ mise plugins install https://github.com/mise-plugins/rtx-nodejs.git
+# install the poetry plugin using the git url only
+# (poetry is inferred from the url)
+$ mise plugins install https://github.com/mise-plugins/mise-poetry.git
 
-# install the node plugin using a specific ref
-$ mise plugins install node https://github.com/mise-plugins/rtx-nodejs.git#v1.0.0
+# install the poetry plugin using a specific ref
+$ mise plugins install poetry https://github.com/mise-plugins/mise-poetry.git#11d0c1e
 ```
 
 # link.md
@@ -4929,7 +5532,7 @@ $ mise plugins link ./mise-node
 
 # `mise plugins update`
 
-* **Usage**: `mise plugins update [-j --jobs <JOBS>] [PLUGIN]...`
+* **Usage**: `mise plugins update [-j --jobs <JOBS>] [PLUGIN]…`
 * **Aliases**: `up`, `upgrade`
 * **Source code**: `src/cli/plugins/update.rs`
 
@@ -4939,7 +5542,7 @@ note: this updates the plugin itself, not the runtime versions
 
 ## Arguments
 
-### `[PLUGIN]...`
+### `[PLUGIN]…`
 
 Plugin(s) to update
 
@@ -5107,35 +5710,65 @@ Tool Options:       [none]
 
 # `mise unuse`
 
-* **Usage**: `mise unuse [--no-prune] [--global] <INSTALLED_TOOL@VERSION>...`
+* **Usage**: `mise unuse [FLAGS] <INSTALLED_TOOL@VERSION>…`
 * **Aliases**: `rm`, `remove`
 * **Source code**: `src/cli/unuse.rs`
 
 Removes installed tool versions from mise.toml
 
+By default, this will use the `mise.toml` file that has the tool defined.
+
+In the following order:
+
+* If `--global` is set, it will use the global config file.
+* If `--path` is set, it will use the config file at the given path.
+* If `--env` is set, it will use `mise.<env>.toml`.
+* If `MISE_DEFAULT_CONFIG_FILENAME` is set, it will use that instead.
+* If `MISE_OVERRIDE_CONFIG_FILENAMES` is set, it will the first from that list.
+* Otherwise just "mise.toml" or global config if cwd is home directory.
+
 Will also prune the installed version if no other configurations are using it.
 
 ## Arguments
 
-### `<INSTALLED_TOOL@VERSION>...`
+### `<INSTALLED_TOOL@VERSION>…`
 
 Tool(s) to remove
 
 ## Flags
 
+### `-g --global`
+
+Use the global config file (`~/.config/mise/config.toml`) instead of the local one
+
+### `-e --env <ENV>`
+
+Create/modify an environment-specific config file like .mise.\<env>.toml
+
+### `-p --path <PATH>`
+
+Specify a path to a config file or directory
+
+If a directory is specified, it will look for a config file in that directory following the rules above.
+
 ### `--no-prune`
 
 Do not also prune the installed version
-
-### `--global`
-
-Remove tool from global config
 
 Examples:
 
 ```
 # will uninstall specific version
-$ mise remove node@18.0.0
+$ mise unuse node@18.0.0
+
+# will uninstall specific version from global config
+$ mise unuse -g node@18.0.0
+
+# will uninstall specific version from .mise.local.toml
+$ mise unuse --env local node@20
+
+# will uninstall specific version from .mise.staging.toml
+$ mise unuse --env staging node@20
 ```
 
 # ls.md
@@ -5202,7 +5835,7 @@ Initializes mise in the current shell session
 
 This should go into your shell's rc file or login shell.
 Otherwise, it will only take effect in the current session.
-(e.g. ~/.zshrc, ~/.zprofile, ~/.zshenv, ~/.bashrc, ~/.bash\_profile, ~/.profile, ~/.config/fish/config.fish)
+(e.g. ~/.zshrc, ~/.zprofile, ~/.zshenv, ~/.bashrc, ~/.bash\_profile, ~/.profile, ~/.config/fish/config.fish, or $PROFILE for powershell)
 
 Typically, this can be added with something like the following:
 
@@ -5266,13 +5899,14 @@ eval "$(mise activate bash)"
 eval "$(mise activate zsh)"
 mise activate fish | source
 execx($(mise activate xonsh))
+(&mise activate pwsh) | Out-String | Invoke-Expression
 ```
 
 # outdated.md
 
 # `mise outdated`
 
-* **Usage**: `mise outdated [FLAGS] [TOOL@VERSION]...`
+* **Usage**: `mise outdated [FLAGS] [TOOL@VERSION]…`
 * **Source code**: `src/cli/outdated.rs`
 
 Shows outdated tool versions
@@ -5281,7 +5915,7 @@ See `mise upgrade` to upgrade these versions.
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to show outdated versions for
 e.g.: node@20 python@3.10
@@ -5326,7 +5960,7 @@ $ mise outdated --json
 
 # `mise watch`
 
-* **Usage**: `mise watch [FLAGS] [TASK] [ARGS]...`
+* **Usage**: `mise watch [FLAGS] [TASK] [ARGS]…`
 * **Aliases**: `w`
 * **Source code**: `src/cli/watch.rs`
 
@@ -5343,13 +5977,13 @@ Tasks to run
 Can specify multiple tasks by separating with `:::`
 e.g.: `mise run task1 arg1 arg2 ::: task2 arg1 arg2`
 
-### `[ARGS]...`
+### `[ARGS]…`
 
 Task and arguments to run
 
 ## Flags
 
-### `-w --watch... <PATH>`
+### `-w --watch… <PATH>`
 
 Watch a specific file or directory
 
@@ -5363,7 +5997,7 @@ This option can be specified multiple times to watch multiple files or directori
 
 The special value '/dev/null', provided as the only path watched, will cause Watchexec to not watch any paths. Other event sources (like signals or key events) may still be used.
 
-### `-W --watch-non-recursive... <PATH>`
+### `-W --watch-non-recursive… <PATH>`
 
 Watch a specific directory, non-recursively
 
@@ -5447,7 +6081,7 @@ The default is 10 seconds. Set to 0 to immediately force-kill the command.
 
 This has no practical effect on Windows as the command is always forcefully terminated; see '--stop-signal' for why.
 
-### `--map-signal... <SIGNAL:SIGNAL>`
+### `--map-signal… <SIGNAL:SIGNAL>`
 
 Translate signals from the OS to signals to send to the command
 
@@ -5741,7 +6375,7 @@ This is a convenience option for using Watchexec as a file watcher, without runn
 
 This option requires `--emit-events-to` to be set, and restricts the available modes to `stdio` and `json-stdio`, modifying their behaviour to write to stdout instead of the stdin of the command.
 
-### `-E --env... <KEY=VALUE>`
+### `-E --env… <KEY=VALUE>`
 
 Add env vars to the command
 
@@ -5815,19 +6449,19 @@ Set the working directory
 
 By default, the working directory of the command is the working directory of Watchexec. You can change that with this option. Note that paths may be less intuitive to use with this.
 
-### `-e --exts... <EXTENSIONS>`
+### `-e --exts… <EXTENSIONS>`
 
 Filename extensions to filter to
 
 This is a quick filter to only emit events for files with the given extensions. Extensions can be given with or without the leading dot (e.g. 'js' or '.js'). Multiple extensions can be given by repeating the option or by separating them with commas.
 
-### `-f --filter... <PATTERN>`
+### `-f --filter… <PATTERN>`
 
 Filename patterns to filter to
 
 Provide a glob-like filter pattern, and only events for files matching the pattern will be emitted. Multiple patterns can be given by repeating the option. Events that are not from files (e.g. signals, keyboard events) will pass through untouched.
 
-### `--filter-file... <PATH>`
+### `--filter-file… <PATH>`
 
 Files to load filters from
 
@@ -5835,7 +6469,7 @@ Provide a path to a file containing filters, one per line. Empty lines and lines
 
 This can also be used via the $WATCHEXEC\_FILTER\_FILES environment variable.
 
-### `-J --filter-prog... <EXPRESSION>`
+### `-J --filter-prog… <EXPRESSION>`
 
 \[experimental] Filter programs.
 
@@ -5883,13 +6517,13 @@ Ignore files that start with shebangs:
 
 'any(.tags\[] | select(.kind == "path" && .filetype == "file"); .absolute | read(2) == "#!") | not'
 
-### `-i --ignore... <PATTERN>`
+### `-i --ignore… <PATTERN>`
 
 Filename patterns to filter out
 
 Provide a glob-like filter pattern, and events for files matching the pattern will be excluded. Multiple patterns can be given by repeating the option. Events that are not from files (e.g. signals, keyboard events) will pass through untouched.
 
-### `--ignore-file... <PATH>`
+### `--ignore-file… <PATH>`
 
 Files to load ignores from
 
@@ -5897,7 +6531,7 @@ Provide a path to a file containing ignores, one per line. Empty lines and lines
 
 This can also be used via the $WATCHEXEC\_IGNORE\_FILES environment variable.
 
-### `--fs-events... <EVENTS>`
+### `--fs-events… <EVENTS>`
 
 Filesystem events to filter to
 
@@ -5956,7 +6590,7 @@ Starts an api server, watching for changes to "*.rs" files in "./src" and kills/
 
 # `mise install`
 
-* **Usage**: `mise install [FLAGS] [TOOL@VERSION]...`
+* **Usage**: `mise install [FLAGS] [TOOL@VERSION]…`
 * **Aliases**: `i`
 * **Source code**: `src/cli/install.rs`
 
@@ -5972,7 +6606,7 @@ Tools will be installed in parallel. To disable, set `--jobs=1` or `MISE_JOBS=1`
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to install e.g.: node@20
 
@@ -5991,7 +6625,7 @@ Number of jobs to run in parallel
 
 Directly pipe stdin/stdout/stderr from plugin to user Sets --jobs=1
 
-### `-v --verbose...`
+### `-v --verbose…`
 
 Show installation output
 
@@ -6031,7 +6665,7 @@ List directories that would be removed without actually removing them
 
 # `mise set`
 
-* **Usage**: `mise set [--file <FILE>] [-g --global] [ENV_VAR]...`
+* **Usage**: `mise set [--file <FILE>] [-g --global] [ENV_VAR]…`
 * **Source code**: `src/cli/set.rs`
 
 Set environment variables in mise.toml
@@ -6040,7 +6674,7 @@ By default, this command modifies `mise.toml` in the current directory.
 
 ## Arguments
 
-### `[ENV_VAR]...`
+### `[ENV_VAR]…`
 
 Environment variable(s) to set
 e.g.: NODE\_ENV=production
@@ -6119,7 +6753,7 @@ $ mise which node --version
 
 # `mise use`
 
-* **Usage**: `mise use [FLAGS] [TOOL@VERSION]...`
+* **Usage**: `mise use [FLAGS] [TOOL@VERSION]…`
 * **Aliases**: `u`
 * **Source code**: `src/cli/use.rs`
 
@@ -6130,16 +6764,18 @@ By default, this will use a `mise.toml` file in the current directory.
 
 In the following order:
 
+* If `--global` is set, it will use the global config file.
+* If `--path` is set, it will use the config file at the given path.
+* If `--env` is set, it will use `mise.<env>.toml`.
 * If `MISE_DEFAULT_CONFIG_FILENAME` is set, it will use that instead.
 * If `MISE_OVERRIDE_CONFIG_FILENAMES` is set, it will the first from that list.
-* If `MISE_ENV` is set, it will use a `mise.<env>.toml` instead.
-* Otherwise just "mise.toml"
+* Otherwise just "mise.toml" or global config if cwd is home directory.
 
 Use the `--global` flag to use the global config file instead.
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to add to config file
 
@@ -6182,7 +6818,7 @@ Number of jobs to run in parallel
 
 Directly pipe stdin/stdout/stderr from plugin to user Sets `--jobs=1`
 
-### `--remove... <PLUGIN>`
+### `--remove… <PLUGIN>`
 
 Remove the plugin(s) from config file
 
@@ -6267,7 +6903,7 @@ Path                        Tools
 
 # `mise env`
 
-* **Usage**: `mise env [FLAGS] [TOOL@VERSION]...`
+* **Usage**: `mise env [FLAGS] [TOOL@VERSION]…`
 * **Aliases**: `e`
 * **Source code**: `src/cli/env.rs`
 
@@ -6278,7 +6914,7 @@ use this if you have `mise activate` in your shell rc file.
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to use
 
@@ -6366,17 +7002,29 @@ Task name to get info of
 
 ## Global Flags
 
-### `--no-header`
-
-Do not print table header
-
 ### `-x --extended`
 
 Show all columns
 
+### `--no-header`
+
+Do not print table header
+
 ### `--hidden`
 
 Show hidden tasks
+
+### `-g --global`
+
+Only show global tasks
+
+### `-J --json`
+
+Output in JSON format
+
+### `-l --local`
+
+Only show non-global tasks
 
 ### `--sort <COLUMN>`
 
@@ -6398,18 +7046,14 @@ Sort order. Default is asc.
 * `asc`
 * `desc`
 
-### `-J --json`
-
-Output in JSON format
-
 ## Subcommands
 
-* `mise tasks add [FLAGS] <TASK> [-- RUN]...`
-* `mise tasks deps [--hidden] [--dot] [TASKS]...`
+* `mise tasks add [FLAGS] <TASK> [-- RUN]…`
+* `mise tasks deps [--hidden] [--dot] [TASKS]…`
 * `mise tasks edit [-p --path] <TASK>`
 * `mise tasks info [-J --json] <TASK>`
 * `mise tasks ls [FLAGS]`
-* `mise tasks run [FLAGS] [TASK] [ARGS]...`
+* `mise tasks run [FLAGS] [TASK] [ARGS]…`
 
 Examples:
 
@@ -6425,7 +7069,7 @@ mise tasks ls
 * **Aliases**: `a`
 * **Source code**: `src/cli/alias/mod.rs`
 
-Manage aliases
+Manage version aliases.
 
 ## Flags
 
@@ -6458,6 +7102,7 @@ Don't show table header
 
 * `mise generate bootstrap [FLAGS]`
 * `mise generate config [-t --tool-versions <TOOL_VERSIONS>] [-o --output <OUTPUT>]`
+* `mise generate devcontainer [FLAGS]`
 * `mise generate git-pre-commit [FLAGS]`
 * `mise generate github-action [FLAGS]`
 * `mise generate task-docs [FLAGS]`
@@ -6496,7 +7141,7 @@ you may source it separately or enable this flag to include it in the script.
 Examples:
 
 ```
-mise completion bash > /etc/bash_completion.d/mise
+mise completion bash > ~/.local/share/bash-completion/mise
 mise completion zsh  > /usr/local/share/zsh/site-functions/_mise
 mise completion fish > ~/.config/fish/completions/mise.fish
 ```
@@ -6505,14 +7150,14 @@ mise completion fish > ~/.config/fish/completions/mise.fish
 
 # `mise bin-paths`
 
-* **Usage**: `mise bin-paths [TOOL@VERSION]...`
+* **Usage**: `mise bin-paths [TOOL@VERSION]…`
 * **Source code**: `src/cli/bin_paths.rs`
 
 List all the active runtime bin paths
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to look up
 e.g.: ruby@3
@@ -6552,8 +7197,8 @@ e.g.: https://github.com/asdf-vm/asdf-nodejs.git
 * `mise plugins link [-f --force] <NAME> [DIR]`
 * `mise plugins ls [-u --urls]`
 * `mise plugins ls-remote [-u --urls] [--only-names]`
-* `mise plugins uninstall [-p --purge] [-a --all] [PLUGIN]...`
-* `mise plugins update [-j --jobs <JOBS>] [PLUGIN]...`
+* `mise plugins uninstall [-p --purge] [-a --all] [PLUGIN]…`
+* `mise plugins update [-j --jobs <JOBS>] [PLUGIN]…`
 
 # reshim.md
 
@@ -6688,6 +7333,39 @@ git commit -m "feat: add new feature"
 git push # runs `mise run ci` on GitHub
 ```
 
+# devcontainer.md
+
+# `mise generate devcontainer`
+
+* **Usage**: `mise generate devcontainer [FLAGS]`
+* **Source code**: `src/cli/generate/devcontainer.rs`
+
+\[experimental] Generate a devcontainer to execute mise
+
+## Flags
+
+### `-n --name <NAME>`
+
+The name of the devcontainer
+
+### `-i --image <IMAGE>`
+
+The image to use for the devcontainer
+
+### `-m --mount-mise-data`
+
+Bind the mise-data-volume to the devcontainer
+
+### `-w --write`
+
+write to .devcontainer/devcontainer.json
+
+Examples:
+
+```
+mise generate devcontainer
+```
+
 # task-docs.md
 
 # `mise generate task-docs`
@@ -6750,6 +7428,8 @@ This command generates a git pre-commit hook that runs a mise task like `mise ru
 when you commit changes to your repository.
 
 Staged files are passed to the task as `STAGED`.
+
+For more advanced pre-commit functionality, see mise's sister project: https://hk.jdx.dev/
 
 ## Flags
 
@@ -6875,7 +7555,7 @@ chmod +x ./bin/mise
 
 # `mise fmt`
 
-* **Usage**: `mise fmt [-a --all]`
+* **Usage**: `mise fmt [FLAGS]`
 * **Source code**: `src/cli/fmt.rs`
 
 Formats mise.toml
@@ -6888,6 +7568,14 @@ Sorts keys and cleans up whitespace in mise.toml
 
 Format all files from the current directory
 
+### `-c --check`
+
+Check if the configs are formatted, no formatting is done
+
+### `-s --stdin`
+
+Read config from stdin and write its formatted version into stdout
+
 Examples:
 
 ```
@@ -6898,7 +7586,7 @@ mise fmt
 
 # `mise unset`
 
-* **Usage**: `mise unset [-f --file <FILE>] [-g --global] [ENV_KEY]...`
+* **Usage**: `mise unset [-f --file <FILE>] [-g --global] [ENV_KEY]…`
 * **Source code**: `src/cli/unset.rs`
 
 Remove environment variable(s) from the config file.
@@ -6907,7 +7595,7 @@ By default, this command modifies `mise.toml` in the current directory.
 
 ## Arguments
 
-### `[ENV_KEY]...`
+### `[ENV_KEY]…`
 
 Environment variable(s) to remove
 e.g.: NODE\_ENV
@@ -6996,7 +7684,7 @@ Defaults to `sh -c -o errexit -o pipefail` on unix, and `cmd /c` on Windows
 Can also be set with the setting `MISE_UNIX_DEFAULT_INLINE_SHELL_ARGS` or `MISE_WINDOWS_DEFAULT_INLINE_SHELL_ARGS`
 Or it can be overridden with the `shell` property on a task.
 
-### `-t --tool... <TOOL@VERSION>`
+### `-t --tool… <TOOL@VERSION>`
 
 Tool(s) to run in addition to what is in mise.toml files e.g.: node@20 python@3.10
 
@@ -7009,6 +7697,7 @@ Configure with `jobs` config or `MISE_JOBS` env var
 ### `-r --raw`
 
 Read/write directly to stdin/stdout/stderr instead of by line
+Redactions are not applied with this option
 Configure with `raw` config or `MISE_RAW` env var
 
 ### `--no-timings`
@@ -7036,6 +7725,8 @@ Change how tasks information is output when running tasks
 * `keep-order` - Print stdout/stderr by line, prefixed with the task's label, but keep the order of the output
 * `quiet` - Don't show extra output
 * `silent` - Don't show any output including stdout and stderr from the task except for errors
+
+### `--no-cache`
 
 Examples:
 
@@ -7106,8 +7797,8 @@ Run `mise cache` with no args to view the current cache directory.
 
 ## Subcommands
 
-* `mise cache clear [PLUGIN]...`
-* `mise cache prune [--dry-run] [-v --verbose...] [PLUGIN]...`
+* `mise cache clear [PLUGIN]…`
+* `mise cache prune [--dry-run] [-v --verbose…] [PLUGIN]…`
 
 # deactivate.md
 
@@ -7130,7 +7821,7 @@ mise deactivate
 
 # `mise upgrade`
 
-* **Usage**: `mise upgrade [FLAGS] [TOOL@VERSION]...`
+* **Usage**: `mise upgrade [FLAGS] [TOOL@VERSION]…`
 * **Aliases**: `up`
 * **Source code**: `src/cli/upgrade.rs`
 
@@ -7144,7 +7835,7 @@ This will update mise.lock if it is enabled, see https://mise.jdx.dev/configurat
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to upgrade
 e.g.: node@20 python@3.10
@@ -7347,7 +8038,7 @@ mise use -g ruby - Use the latest version of Ruby installed by Homebrew
 
 # `mise ls`
 
-* **Usage**: `mise ls [FLAGS] [INSTALLED_TOOL]...`
+* **Usage**: `mise ls [FLAGS] [INSTALLED_TOOL]…`
 * **Aliases**: `list`
 * **Source code**: `src/cli/ls.rs`
 
@@ -7361,7 +8052,7 @@ It's a useful command to get the current state of your tools.
 
 ## Arguments
 
-### `[INSTALLED_TOOL]...`
+### `[INSTALLED_TOOL]…`
 
 Only show tool versions from \[TOOL]
 
@@ -7375,13 +8066,13 @@ Only show tool versions currently specified in a mise.toml
 
 Only show tool versions currently specified in the global mise.toml
 
+### `-l --local`
+
+Only show tool versions currently specified in the local mise.toml
+
 ### `-i --installed`
 
 Only show tool versions that are installed (Hides tools defined in mise.toml but not installed)
-
-### `-o --offline`
-
-Don't fetch information such as outdated versions
 
 ### `--outdated`
 
@@ -7439,7 +8130,7 @@ $ mise ls --json
 
 # `mise exec`
 
-* **Usage**: `mise exec [FLAGS] [TOOL@VERSION]... [-- COMMAND]...`
+* **Usage**: `mise exec [FLAGS] [TOOL@VERSION]… [-- COMMAND]…`
 * **Aliases**: `x`
 * **Source code**: `src/cli/exec.rs`
 
@@ -7455,11 +8146,11 @@ The "--" separates runtimes from the commands to pass along to the subprocess.
 
 ## Arguments
 
-### `[TOOL@VERSION]...`
+### `[TOOL@VERSION]…`
 
 Tool(s) to start e.g.: node@20 python@3.10
 
-### `[-- COMMAND]...`
+### `[-- COMMAND]…`
 
 Command string to execute (same as --command)
 
@@ -7536,7 +8227,7 @@ asdf:mise-plugins/mise-poetry
 
 # `mise shell`
 
-* **Usage**: `mise shell [FLAGS] <TOOL@VERSION>...`
+* **Usage**: `mise shell [FLAGS] <TOOL@VERSION>…`
 * **Aliases**: `sh`
 * **Source code**: `src/cli/shell.rs`
 
@@ -7549,7 +8240,7 @@ such as `MISE_NODE_VERSION=20` which is "eval"ed as a shell function created by 
 
 ## Arguments
 
-### `<TOOL@VERSION>...`
+### `<TOOL@VERSION>…`
 
 Tool(s) to use
 
@@ -7613,13 +8304,136 @@ $ mise where node
 
 # demo.md
 
-# 30 Second Demo
+# Demo
 
-The following shows using mise to install different versions
-of node.
-Note that calling `which node` gives us a real path to node, not a shim.
+The following demo shows:
 
-![demo](https://github.com/jdx/mise/blob/main/docs/demo.gif?raw=true)
+* how to use `mise exec` to run a command with a specific version of a tool
+* how you can use `mise` to install and many other tools such as `jq`, `terraform`, or `go`.
+* how to use `mise` to manage multiple versions of `node` on the same system.
+
+<video style="max-width: 100%; height: auto;" controls="controls" src="./tapes/demo.mp4" />
+
+## Transcript
+
+`mise exec <tool> -- <command>` allows you to run any tools with mise
+
+```shell
+mise exec node@22 -- node -v
+# mise node@22.14.0 ✓ installed
+# v22.14.0
+```
+
+node is only available in the mise environment, not globally
+
+```shell
+node -v
+# bash: node: command not found
+```
+
+***
+
+Here is another example where we run terraform with `mise exec`
+
+```shell
+mise exec terraform -- terraform -v
+# mise terraform@1.11.3 ✓ installed
+# Terraform v1.11.3
+```
+
+***
+
+`mise exec` is great for running one-off commands, however it can be convenient to activate mise. When activated, mise will automatically update your `PATH` to include the tools you have installed, making them available directly.
+
+We will start by installing node@lts and make it the global default
+
+```shell
+mise use --global node@lts
+# v22.14.0
+```
+
+```shell
+node -v
+# v22.14.0
+```
+
+```shell
+which node
+# /root/.local/share/mise/installs/node/22.14.0/bin/node
+```
+
+Note that we get back the path to the real node here, not a shim.
+
+***
+
+We can also install other tools with mise. For example, we will install terraform, jq, and go
+
+```shell
+mise use -g terraform jq go
+# mise jq@1.7.1 ✓ installed
+# mise terraform@1.11.3 ✓ installed
+# mise go@1.24.1 ✓ installed
+# mise ~/.config/mise/config.toml tools: go@1.24.1, jq@1.7.1, terraform@1.11.3
+```
+
+```shell
+terraform -v
+# Terraform v1.11.3
+```
+
+```shell
+jq --version
+# jq-1.7
+```
+
+```shell
+go version
+# go version go1.24.1 linux/amd64
+```
+
+```shell
+mise ls
+# Tool       Version  Source                      Requested
+# go         1.24.1   ~/.config/mise/config.toml  latest
+# jq         1.7.1    ~/.config/mise/config.toml  latest
+# node       22.14.0  ~/.config/mise/config.toml  lts
+# terraform  1.11.3   ~/.config/mise/config.toml  latest
+```
+
+***
+
+Let's enter a project directory where we will set up node@23
+
+```shell
+cd myproj
+mise use node@23 pnpm@10
+# mise node@23.10.0 ✓ installed
+# mise pnpm@10.7.0 ✓ installed
+```
+
+```shell
+node -v
+# v23.10.0
+pnpm -v
+# 10.7.0
+```
+
+As expected, `node -v` is now v23.x
+
+```shell
+cat mise.toml
+# [tools]
+# node = "23"
+# pnpm = "10"
+```
+
+We will leave this directory. The node version will revert to the global LTS version
+
+```shell
+cd ..
+node -v
+# v22.14.0
+```
 
 # README.md
 
@@ -7631,7 +8445,7 @@ This repository contains the documentation website for the runtime executor mise
 
 # Swift <Badge type="warning" text="experimental" />
 
-Swift is supported for macos and linux.
+`mise` can be used to manage multiple versions of `swift` on the same system. Swift is supported for macos and linux.
 
 ## Usage
 
@@ -7641,6 +8455,8 @@ Use the latest stable version of swift:
 mise use -g swift
 swift --version
 ```
+
+See a mise guide for Swift developers on how to use `mise` with `swift`.
 
 ## Settings
 
@@ -7654,8 +8470,10 @@ import Settings from '/components/settings.vue';
 
 # Bun
 
-The following are instructions for using the bun mise core plugin. This is used when there isn't a
-git plugin installed named "bun".
+`mise` can be used to install and manage multiple versions of bun on the same system.
+
+> The following are instructions for using the bun mise core plugin. This is used when there isn't a
+> git plugin installed named "bun".
 
 The code for this is inside the mise repository at
 `./src/plugins/core/bun.rs`.
@@ -7671,15 +8489,18 @@ mise use -g bun@latest  # install latest bun
 
 See available versions with `mise ls-remote bun`.
 
+> \[!NOTE]
+> Avoid using `bun upgrade` to upgrade bun as `mise` will not be aware of the change.
+
 # go.md
 
 # Go
 
-The following are instructions for using the go mise core plugin. This is used when there isn't a
-git plugin installed named "go".
+`mise` can be used to install and manage multiple versions of go on the same system.
 
-If you want to use asdf-golang
-then use `mise plugins install go GIT_URL`.
+> The following are instructions for using the go mise core plugin. This is used when there isn't a
+> git plugin installed named "go". If you want to use asdf-golang
+> then use `mise plugins install go GIT_URL`.
 
 The code for this is inside the mise repository at
 `./src/plugins/core/go.rs`.
@@ -7700,13 +8521,12 @@ first version of each series was released without a `.0` suffix, making 1.20 an 
 mise use -g go@prefix:1.20
 ```
 
-## Settings
+## `.go-version` file support
 
-<script setup>
-import Settings from '/components/settings.vue';
-</script>
+mise uses a `mise.toml` or `.tool-versions` file for auto-switching between software versions.
+However, it can also read go-specific version files named `.go-version`.
 
-<Settings child="go" :level="3" />
+See idiomatic version files
 
 ## Default packages
 
@@ -7719,18 +8539,23 @@ github.com/Dreamacro/clash # allows comments
 github.com/jesseduffield/lazygit
 ```
 
-## `.go-version` file support
+## Settings
 
-mise uses a `mise.toml` or `.tool-versions` file for auto-switching between software versions.
-However it can also read go-specific version files named `.go-version`.
+<script setup>
+import Settings from '/components/settings.vue';
+</script>
+
+<Settings child="go" :level="3" />
 
 # python.md
 
 # Python
 
-The following are instructions for using the python mise core plugin. The core plugin will be used
-so long as no plugin is manually
-installed named "python" using `mise plugins install python [GIT_URL]`.
+Like `pyenv`, `mise` can manage multiple versions of Python on the same system. Mise can also automatically create virtual environments for your projects and integrates with `uv`.
+
+> The following are instructions for using the python mise core plugin. The core plugin will be used
+> so long as no plugin is manually
+> installed named "python" using `mise plugins install python [GIT_URL]`.
 
 The code for this is inside of the mise repository
 at `./src/plugins/core/python.rs`.
@@ -7754,19 +8579,42 @@ $ python3.11 -V
 3.11.0
 ```
 
-## Settings
+See the Python Cookbook for common tasks and examples.
 
-`python-build` already has
-a handful of settings, in
-additional to that python in mise has a few extra configuration variables.
+## `.python-version` support
 
-Set these with `mise settings set [VARIABLE] [VALUE]` or by setting the environment variable.
+`.python-version`/`.python-versions` files are supported by mise. See idiomatic version files.
 
-<script setup>
-import Settings from '/components/settings.vue';
-</script>
+## Automatic virtualenv activation
 
-<Settings child="python" :level="3" />
+Python comes with virtualenv support built in, use it with `mise.toml` configuration like
+one of the following:
+
+```toml
+[tools]
+python = "3.11" # [optional] will be used for the venv
+
+[env]
+_.python.venv = ".venv" # relative to this file's directory
+_.python.venv = "/root/.venv" # can be absolute
+_.python.venv = "{{env.HOME}}/.cache/venv/myproj" # can use templates
+_.python.venv = { path = ".venv", create = true } # create the venv if it doesn't exist
+_.python.venv = { path = ".venv", create = true, python = "3.10" } # use a specific python version
+_.python.venv = { path = ".venv", create = true, python_create_args = ["--without-pip"] } # pass args to python -m venv
+_.python.venv = { path = ".venv", create = true, uv_create_args = ["--system-site-packages"] } # pass args to uv venv
+# Install seed packages (pip, setuptools, and wheel) into the virtual environment.
+_.python.venv = { path = ".venv", create = true, uv_create_args = ['--seed'] }
+```
+
+The venv will need to be created manually with `python -m venv /path/to/venv` unless `create=true`.
+
+## mise & uv
+
+If you have installed `uv` (for example, with `mise use -g uv@latest`), `mise` will use it to create virtual environments. Otherwise, it will use the built-in `python -m venv` command.
+
+Note that `uv` does not include `pip` by default (as `uv` provides `uv pip` instead). If you need the `pip` package, add the `uv_create_args = ['--seed']` option.
+
+See the mise + uv Cookbook for more examples.
 
 ## Default Python packages
 
@@ -7813,6 +8661,20 @@ its dependencies are installed
 before installing python with
 python-build.
 
+## Installing free-threaded python
+
+Free-threaded python can be installed via python-build by running the following:
+
+```bash
+MISE_PYTHON_COMPILE=0 MISE_PYTHON_PRECOMPILED_FLAVOR=freethreaded+pgo-full mise install python
+```
+
+Or to compile with python-build:
+
+```bash
+MISE_PYTHON_COMPILE=1 PYTHON_BUILD_FREE_THREADING=1 mise install python
+```
+
 ## Troubleshooting errors with Homebrew
 
 If you normally use Homebrew and you see errors regarding OpenSSL,
@@ -7851,44 +8713,30 @@ CFLAGS="-I$(brew --prefix openssl)/include" \
 brew link pkg-config
 ```
 
-## Automatic virtualenv activation
+## Settings
 
-Python comes with virtualenv support built in, use it with `mise.toml` configuration like
-one of the following:
+`python-build` already has
+a handful of settings, in
+additional to that python in mise has a few extra configuration variables.
 
-```toml
-[tools]
-python = "3.11" # [optional] will be used for the venv
+Set these with `mise settings set [VARIABLE] [VALUE]` or by setting the environment variable.
 
-[env]
-_.python.venv = ".venv" # relative to this file's directory
-_.python.venv = "/root/.venv" # can be absolute
-_.python.venv = "{{env.HOME}}/.cache/venv/myproj" # can use templates
-_.python.venv = { path = ".venv", create = true } # create the venv if it doesn't exist
-_.python.venv = { path = ".venv", create = true, python = "3.10" } # use a specific python version
-_.python.venv = { path = ".venv", create = true, python_create_args = ["--without-pip"] } # pass args to python -m venv
-_.python.venv = { path = ".venv", create = true, uv_create_args = ["--system-site-packages"] } # pass args to uv venv
-```
+<script setup>
+import Settings from '/components/settings.vue';
+</script>
 
-The venv will need to be created manually with `python -m venv /path/to/venv` unless `create=true`.
-
-## Installing free-threaded python
-
-Free-threaded python can be installed via python-build by running the following:
-
-```bash
-MISE_PYTHON_COMPILE=0 MISE_PYTHON_PRECOMPILED_FLAVOR=freethreaded+pgo-full mise install python
-```
-
-Or to compile with python-build:
-
-```bash
-MISE_PYTHON_COMPILE=1 PYTHON_BUILD_FREE_THREADING=1 mise install python
-```
+<Settings child="python" :level="3" />
 
 # elixir.md
 
 # Elixir <Badge type="warning" text="experimental" />
+
+`mise` can be used to manage multiple `elixir` versions on the same system.
+
+> The following are instructions for using the elixir core plugin. This is used when there isn't a git plugin installed named "elixir".
+
+The code for this is inside the mise repository at
+`./src/plugins/core/elixir.rs`.
 
 ## Usage
 
@@ -7898,11 +8746,15 @@ Use the latest stable version of elixir:
 mise use -g erlang elixir
 ```
 
+Note that `erlang` is required to install `elixir`.
+
 # zig.md
 
 # Zig
 
-The following are instructions for using the zig mise core plugin.
+`mise` can be used to install and manage multiple versions of zig on the same system.
+
+> The following are instructions for using the zig mise core plugin.
 
 The code for this is inside the mise repository at
 `./src/plugins/core/zig.rs`.
@@ -7913,10 +8765,13 @@ The following installs zig and makes it the global default:
 
 ```sh
 mise use -g zig@0.13     # install zig 0.13.x
-mise use -g zig@latest  # install latest zig
+mise use -g zig@latest  # install latest zig release
+mise use -g zig@ref:master # install latest nightly from master
+mise use -g zig@ref:mach-latest # install latest nominated zig
+mise use -g zig@0.14.0-dev.2577+271452d22 # install dev version
 ```
 
-See available versions with `mise ls-remote zig`.
+See available stable versions with `mise ls-remote zig`.
 
 ## zig Language Server
 
@@ -7933,10 +8788,11 @@ Note that a tagged release of `Zig` should be used with the same tagged release 
 
 # Rust <Badge type="warning" text="experimental" />
 
-Rust/cargo can be installed which uses rustup under the hood. mise will install rustup if it is not
-already installed and add the requested targets. By default, mise uses the default location of rustup/cargo
-(`~/.rustup` and `~/.cargo`), but you can change this by setting the `MISE_RUSTUP_HOME` and `MISE_CARGO_HOME`
-environment variables if you'd like to isolate mise's rustup/cargo from your other rustup/cargo installations.
+Rust/cargo can be installed which uses rustup under the hood. mise will install rustup if it is not already
+installed and add the requested targets. By default, mise respects the `RUSTUP_HOME` and `CARGO_HOME` environment
+variables for the home directories and falls back to their standard location (`~/.rustup` and `~/.cargo`) if they are
+not set. You can change this by setting the `MISE_RUSTUP_HOME` and `MISE_CARGO_HOME` environment variables if you'd like
+to isolate mise's rustup/cargo from your other rustup/cargo installations.
 
 Unlike most tools, these won't exist inside of `~/.local/share/mise/installs` because they are managed by rustup.
 All mise does is set the `RUST_TOOLCHAIN` environment variable to the requested version and rustup will
@@ -7965,6 +8821,46 @@ mise use -g rust@1.82
 cargo build
 ```
 
+## Tool Options
+
+The following tool-options are available for the `rust` backend—these
+go in `[tools]` in `mise.toml`.
+
+### `components`
+
+The `components` option allows you to specify which components to install. Multiple components can be
+specified by separating them with a comma. The set of available components may vary with different releases and
+toolchains. Please consult the Rust documentation for the most up-to-date list of components.
+
+```toml
+[tools]
+"rust" = { version = "1.83.0", components = "rust-src,llvm-tools" }
+```
+
+### `profile`
+
+The `profile` option allows you to specify the type of release to install. The following values
+are supported:
+
+* `minimal`: Includes as few components as possible to get a working compiler (rustc, rust-std, and cargo)
+* `default` (default): Includes all of components in the minimal profile, and adds rust-docs, rustfmt, and clippy
+* `complete`: Includes all the components available through rustup. This should never be used, as it includes every component ever included in the metadata and thus will almost always fail.
+
+```toml
+[tools]
+"rust" = { version = "1.83.0", profile = "minimal" }
+```
+
+### `targets`
+
+The `targets` option allows you to specify a list of platforms to install for cross-compilation. Multiple targets can
+be specified by separating them with a comma.
+
+```toml
+[tools]
+"rust" = { version = "1.83.0", targets = "wasm32-unknown-unknown,thumbv2-none-eabi" }
+```
+
 ## Settings
 
 <script setup>
@@ -7977,11 +8873,12 @@ import Settings from '/components/settings.vue';
 
 # Node
 
-The following are instructions for using the node mise core plugin. This is used when there isn't a
-git plugin installed named "node".
+Like `nvm`, (or `volta`, `fnm` or `asdf`...), `mise` can manage multiple versions of Node.js on the same system.
 
-If you want to use asdf-nodejs
-then run `mise plugins install node https://github.com/asdf-vm/asdf-nodejs`
+> The following are instructions for using the node mise core plugin. This is used when there isn't a
+> git plugin installed named "node".
+> If you want to use asdf-nodejs
+> then run `mise plugins install node https://github.com/asdf-vm/asdf-nodejs`
 
 The code for this is inside the mise repository at `./src/plugins/core/node.rs`.
 
@@ -7994,34 +8891,15 @@ default:
 mise use -g node@20
 ```
 
-## Requirements
+See the Node.JS Cookbook for common tasks and examples.
 
-See BUILDING.md in node's documentation for
-required system dependencies.
+## `.nvmrc` and `.node-version` support
 
-## Settings
+By default, mise uses a `mise.toml` file for auto-switching between software versions.
 
-<script setup>
-import Settings from '/components/settings.vue';
-</script>
+It also supports `.tool-versions`, `.nvmrc` or `.node-version` file to find out what version of Node.js should be used. This will be used if `node` isn't defined in `mise.toml`.
 
-<Settings child="node" :level="3" />
-
-### Environment Variables
-
-* `MISE_NODE_VERIFY` \[bool]: Verify the downloaded assets using GPG. Defaults to `true`.
-* `MISE_NODE_NINJA` \[bool]: Use ninja instead of make to compile node. Defaults to `true` if installed.
-* `MISE_NODE_CONCURRENCY` \[uint]: How many jobs should be used in compilation. Defaults to half the computer cores
-* `MISE_NODE_DEFAULT_PACKAGES_FILE` \[string]: location of default packages file, defaults to `$HOME/.default-npm-packages`
-* `MISE_NODE_CFLAGS` \[string]: Additional CFLAGS options (e.g., to override -O3).
-* `MISE_NODE_CONFIGURE_OPTS` \[string]: Additional `./configure` options.
-* `MISE_NODE_MAKE_OPTS` \[string]: Additional `make` options.
-* `MISE_NODE_MAKE_INSTALL_OPTS` \[string]: Additional `make install` options.
-* `MISE_NODE_COREPACK` \[bool]: Installs the default corepack shims after installing any node version that ships with corepack.
-
-::: info
-TODO: these env vars should be migrated to compatible settings in the future.
-:::
+This makes it a drop-in replacement for `nvm`. See idiomatic version files for more information.
 
 ## Default node packages
 
@@ -8035,15 +8913,21 @@ express
 
 You can specify a non-default location of this file by setting a `MISE_NODE_DEFAULT_PACKAGES_FILE` variable.
 
-## `.nvmrc` and `.node-version` support
-
-mise uses a `mise.toml` or `.tool-versions` file for auto-switching between software versions. To ease migration, you can have also have it read an existing `.nvmrc` or `.node-version` file to find out what version of Node.js should be used. This will be used if `node` isn't defined in `mise.toml`/`.tool-versions`.
-
 ## "nodejs" -> "node" Alias
 
 You cannot install/use a plugin named "nodejs". If you attempt this, mise will just rename it to
 "node". See the FAQ
 for an explanation.
+
+## Building from source
+
+If compiling from source, see BUILDING.md in node's documentation for
+required system dependencies.
+
+```shell
+mise settings node.compile=1
+mise use node@latest
+```
 
 ## Unofficial Builds
 
@@ -8068,15 +8952,39 @@ mise settings node.flavor=musl
 mise settings node.flavor=glibc-217
 ```
 
+## Settings
+
+<script setup>
+import Settings from '/components/settings.vue';
+</script>
+
+<Settings child="node" :level="3" />
+
+## Environment Variables
+
+* `MISE_NODE_VERIFY` \[bool]: Verify the downloaded assets using GPG. Defaults to `true`.
+* `MISE_NODE_NINJA` \[bool]: Use ninja instead of make to compile node. Defaults to `true` if installed.
+* `MISE_NODE_CONCURRENCY` \[uint]: How many jobs should be used in compilation. Defaults to half the computer cores
+* `MISE_NODE_DEFAULT_PACKAGES_FILE` \[string]: location of default packages file, defaults to `$HOME/.default-npm-packages`
+* `MISE_NODE_CFLAGS` \[string]: Additional CFLAGS options (e.g., to override -O3).
+* `MISE_NODE_CONFIGURE_OPTS` \[string]: Additional `./configure` options.
+* `MISE_NODE_MAKE_OPTS` \[string]: Additional `make` options.
+* `MISE_NODE_MAKE_INSTALL_OPTS` \[string]: Additional `make install` options.
+* `MISE_NODE_COREPACK` \[bool]: Installs the default corepack shims after installing any node version that ships with corepack.
+
+::: info
+These environment variables will be migrated to compatible settings in the future.
+:::
+
 # deno.md
 
 # Deno
 
-The following are instructions for using the deno mise core plugin. This is used when there isn't a
-git plugin installed named "deno".
+`mise` can be used to install and manage multiple versions of deno on the same system.
 
-If you want to use asdf-deno
-then run `mise plugins install deno https://github.com/asdf-community/asdf-deno`.
+> The following are instructions for using the deno mise core plugin. This is used when there isn't a
+> git plugin installed named "deno". If you want to use asdf-deno
+> then run `mise plugins install deno https://github.com/asdf-community/asdf-deno`.
 
 The code for this is inside the mise repository at
 `./src/plugins/core/deno.rs`.
@@ -8092,12 +9000,17 @@ mise use -g deno@latest  # install latest deno
 
 See available versions with `mise ls-remote deno`.
 
+> \[!NOTE]
+> Avoid using `deno upgrade` to upgrade `deno` as `mise` will not be aware of the change.
+
 # erlang.md
 
 # Erlang
 
-The following are instructions for using the erlang core plugin.
-This is used when there isn't a git plugin installed named "erlang".
+`mise` can be used to install and manage multiple versions of erlang on the same system.
+
+> The following are instructions for using the erlang core plugin.
+> This is used when there isn't a git plugin installed named "erlang".
 
 The code for this is inside the mise repository at
 `./src/plugins/core/erlang.rs`.
@@ -8129,11 +9042,11 @@ import Settings from '/components/settings.vue';
 
 # Java
 
-The following are instructions for using the java mise core plugin. This is used when there isn't a
-git plugin installed named "java".
+Like `sdkman`, `mise` can manage multiple versions of Java on the same system.
 
-If you want to use asdf-java
-then use `mise plugins install java GIT_URL`.
+> The following are instructions for using the java mise core plugin. This is used when there isn't a
+> git plugin installed named "java". If you want to use asdf-java
+> then use `mise plugins install java GIT_URL`.
 
 The code for this is inside the mise repository at
 `./src/plugins/core/java.rs`.
@@ -8148,30 +9061,22 @@ mise use -g java@openjdk-21
 mise use -g java@21         # alternate shorthands for openjdk-only
 ```
 
+You can also install a jdk from a different vendor:
+
+```sh
+mise use -g java@temurin-21
+mise use -g java@zulu-21
+mise use -g java@corretto-21
+```
+
 See available versions with `mise ls-remote java`.
 
 ::: warning
 Note that shorthand versions (like `21` in the example) use `OpenJDK` as the vendor.
-The OpenJDK versions will only be updated for a 6-month period. Updates and security patches will not be available after this short period. This also applies for LTS versions. Also see https://whichjdk.com for more information.
+The OpenJDK versions will only be updated for a 6-month period. Updates and security patches will not be available after this short period. This also applies for LTS versions.
+
+For more information on which JDK to choose, see https://whichjdk.com.
 :::
-
-## Tool Options
-
-The following tool-options are available for the `java` backend—these
-go in `[tools]` in `mise.toml`.
-
-### `release_type`
-
-The `release_type` option allows you to specify the type of release to install. The following values
-are supported:
-
-* `ga` (default): General Availability release
-* `ea`: Early Access release
-
-```toml
-[tools]
-"java" = { version = "openjdk-21", release_type = "ea" }
-```
 
 ## macOS JAVA\_HOME Integration
 
@@ -8187,15 +9092,18 @@ sudo ln -s ~/.local/share/mise/installs/java/openjdk-21/Contents /Library/Java/J
 
 > Note: Not all distributions of the Java SDK support this integration (e.g liberica).
 
-## Idiomatic version files
+## `.java-version` and `.sdkmanrc` files support
 
-The Java core plugin supports the idiomatic version files `.java-version` and `.sdkmanrc`.
+The Java core plugin supports the idiomatic version files `.java-version` and `.sdkmanrc`. See idiomatic version files.
 
 For `.sdkmanrc` files, mise will try to map the vendor and version to the appropriate version
 string. For example, the version `20.0.2-tem` will be mapped to `temurin-20.0.2`. Due to Azul's Zulu
-versioning, the version `11.0.12-zulu` will be mapped to the major version `zulu-11`. Not all
-vendors available in SDKMAN are supported by mise. The following vendors are NOT supported: `bsg` (
-Bisheng), `graal` (GraalVM), `nik` (Liberica NIK).
+versioning, the version `11.0.12-zulu` will be mapped to the major version `zulu-11`.
+
+Not all vendors available in sdkman are supported by mise.
+The following vendors are NOT supported: `bsg` (Bisheng), `graal` (GraalVM), `nik` (Liberica NIK).
+
+### Using unsupported versions
 
 In case an unsupported version of java is needed, some manual work is required:
 
@@ -8226,15 +9134,45 @@ $ ls -R $MISE_CACHE_DIR/java
 mise/java/21.0.1-open:
 ```
 
+## Tool Options
+
+The following tool-options are available for the `java` backend.
+These options go in the `[tools]` section in `mise.toml`.
+
+### `release_type`
+
+The `release_type` option allows you to specify the type of release to install. The following values
+are supported:
+
+* `ga` (default): General Availability release
+* `ea`: Early Access release
+
+```toml
+[tools]
+"java" = { version = "openjdk-21", release_type = "ea" }
+```
+
+## Gradle toolchains detection
+
+Gradle can automatically detect toolchains installed by some tools (see toolchain | auto-detection).
+
+At the moment, `Gradle` does not support auto-detecting Java installations by `mise` (see gradle/issues/29508 and gradle/issues/29355). A workaround is to leverage the fact that `mise` install layout is similar to the one used by `asdf`.
+
+```shell
+mkdir -p ~/.asdf/installs/ && ln -s ~/.local/share/mise/installs/java ~/.asdf/installs/
+```
+
+Otherwise, you can always use the foojay-resolver-convention plugin to let Gradle automatically install JDKs required by your project.
+
 # ruby.md
 
 # Ruby
 
-The following are instructions for using the ruby mise core plugin. This is used when there isn't a
-git plugin installed named "ruby".
+Like `rvm`, `rbenv`, or `asdf`, `mise` can manage multiple versions of Ruby on the same system.
 
-If you want to use asdf-ruby
-then use `mise plugins install ruby GIT_URL`.
+> The following are instructions for using the ruby mise core plugin. This is used when there isn't a
+> git plugin installed named "ruby". If you want to use asdf-ruby
+> then use `mise plugins install ruby GIT_URL`.
 
 The code for this is inside the mise repository at
 `./src/plugins/core/ruby.rs`.
@@ -8254,18 +9192,6 @@ dependencies installed.
 You can check its README for additional settings and some
 troubleshooting.
 
-## Settings
-
-`ruby-build` already has a
-handful of settings,
-in additional to that mise has a few extra settings:
-
-<script setup>
-import Settings from '/components/settings.vue';
-</script>
-
-<Settings child="ruby" :level="3" />
-
 ## Default gems
 
 mise can automatically install a default set of gems right after installing a new ruby version.
@@ -8282,7 +9208,7 @@ rubocop --pre # install prerelease version
 ## `.ruby-version` and `Gemfile` support
 
 mise uses a `mise.toml` or `.tool-versions` file for auto-switching between software versions.
-However it can also read ruby-specific version files `.ruby-version` or `Gemfile`
+However, it can also read ruby-specific version files `.ruby-version` or `Gemfile`
 (if it specifies a ruby version).
 
 Create a `.ruby-version` file for the current version of ruby:
@@ -8291,7 +9217,9 @@ Create a `.ruby-version` file for the current version of ruby:
 ruby -v > .ruby-version
 ```
 
-### Manually updating ruby-build
+See idiomatic version files for more information.
+
+## Manually updating ruby-build
 
 ruby-build should update daily, however if you find versions do not yet exist you can force an
 update:
@@ -8300,6 +9228,18 @@ update:
 mise cache clean
 mise ls-remote ruby
 ```
+
+## Settings
+
+`ruby-build` already has a
+handful of settings,
+in additional to that mise has a few extra settings:
+
+<script setup>
+import Settings from '/components/settings.vue';
+</script>
+
+<Settings child="ruby" :level="3" />
 
 # core-tools.md
 
@@ -8401,14 +9341,11 @@ actions:
 text: Getting Started
 link: /getting-started
 \- theme: alt
+text: Demo
+link: /demo
+\- theme: alt
 text: About
 link: /about
-\- theme: alt
-text: GitHub
-link: https://github.com/jdx/mise
-\- theme: alt
-text: Discord
-link: https://discord.gg/UBa7pJUN7Z
 
 features:
 
@@ -8456,7 +9393,7 @@ a lot easier than figuring out mise's rules.
 
 Notes:
 
-* Paths which start with `mise` can be dotfiles, e.g.: `mise.toml` or `.mise/config.toml`.
+* Paths which start with `mise` can be dotfiles, e.g.: `.mise.toml` or `.mise/config.toml`.
 * This list doesn't include Configuration Environments which allow for environment-specific config files like `mise.development.toml`—set with `MISE_ENV=development`.
 * See `LOCAL_CONFIG_FILENAMES` in `src/config/mod.rs` for the actual code for these paths and their precedence. Some legacy paths are not listed here for brevity.
 
@@ -8472,31 +9409,14 @@ Here is what a `mise.toml` looks like:
 
 ```toml
 [env]
-# supports arbitrary env vars so mise can be used like direnv/dotenv
 NODE_ENV = 'production'
 
 [tools]
-# specify single or multiple versions
 terraform = '1.0.0'
-erlang = ['23.3', '24.0']
-
-# supports everything you can do with .tool-versions currently
-node = ['16', 'prefix:20', 'ref:master', 'path:~/.nodes/14']
-
-[alias.node.versions] # project-local aliases
-# use vfox:version-fox/vfox-nodejs when running `mise i node@backend`
-backend = "vfox:version-fox/vfox-nodejs"
-# install node-20.x when running `mise i node@my_custom_node`
-my_custom_node = '20'
+erlang = '24.0'
 
 [tasks.build]
 run = 'echo "running build tasks"'
-
-[plugins]
-# DEPRECATED: use `alias.<PLUGIN>` instead
-# specify a custom repo url
-# note this will only be used if the plugin does not already exist
-python = 'https://github.com/asdf-community/asdf-python'
 ```
 
 `mise.toml` files are hierarchical. The configuration in a file in the current directory will
@@ -8594,7 +9514,7 @@ mise can be configured in `~/.config/mise/config.toml`. It's like local `mise.to
 that
 it is used for all directories.
 
-```toml
+```toml [~/.config/mise/config.toml]
 [tools]
 # global tool versions go here
 # you can set these with `mise use -g`
@@ -8602,10 +9522,9 @@ node = 'lts'
 python = ['3.10', '3.11']
 
 [settings]
-# plugins can read the versions files used by other version managers (if enabled by the plugin)
+# tools can read the versions files used by other version managers
 # for example, .nvmrc in the case of node's nvm
-idiomatic_version_file = true                     # enabled by default (unlike asdf)
-idiomatic_version_file_disable_tools = ['python'] # disable for specific tools
+idiomatic_version_file_enable_tools = ['node']
 
 # configure `mise install` to always keep the downloaded archive
 always_keep_download = false        # deleted after install by default
@@ -8695,7 +9614,7 @@ Both `mise.toml` and `.tool-versions` support "scopes" which modify the behavior
 mise supports "idiomatic version files" just like asdf. They're language-specific files
 like `.node-version`
 and `.python-version`. These are ideal for setting the runtime version of a project without forcing
-other developers to use a specific tool like mise/asdf.
+other developers to use a specific tool like mise or asdf.
 
 They support aliases, which means you can have an `.nvmrc` file with `lts/hydrogen` and it will work
 in mise and nvm. Here are some of the supported idiomatic version files:
@@ -8704,7 +9623,7 @@ in mise and nvm. Here are some of the supported idiomatic version files:
 | --------- | -------------------------------------------------- |
 | crystal   | `.crystal-version`                                 |
 | elixir    | `.exenv-version`                                   |
-| go        | `.go-version`, `go.mod`                            |
+| go        | `.go-version`                                      |
 | java      | `.java-version`, `.sdkmanrc`                       |
 | node      | `.nvmrc`, `.node-version`                          |
 | python    | `.python-version`, `.python-versions`              |
@@ -8712,8 +9631,10 @@ in mise and nvm. Here are some of the supported idiomatic version files:
 | terraform | `.terraform-version`, `.packer-version`, `main.tf` |
 | yarn      | `.yarnrc`                                          |
 
-In mise these are enabled by default. You can disable them
-with `mise settings idiomatic_version_file=false`.
+In mise, these are enabled by default. However, in 2025.10.0 they will default to disabled (see https://github.com/jdx/mise/discussions/4345).
+
+* `mise settings add idiomatic_version_file_enable_tools python` for a specific tool such as Python (docs)
+
 There is a performance cost to having these when they're parsed as it's performed by the plugin in
 `bin/parse-version-file`. However, these are cached so it's not a huge deal.
 You may not even notice.
@@ -8784,7 +9705,9 @@ This is the path to the config file.
 
 Default: `$HOME`
 
+::: v-pre
 This is the path which is used as `{{config_root}}` for the global config file.
+:::
 
 ### `MISE_ENV_FILE`
 
@@ -8817,6 +9740,10 @@ Output logs to a file.
 Same as `MISE_LOG_LEVEL` but for the log *file* output level. This is useful if you want
 to store the logs but not have them litter your display.
 
+### `MISE_LOG_HTTP=1`
+
+Display HTTP requests/responses in the logs.
+
 ### `MISE_QUIET=1`
 
 Equivalent to `MISE_LOG_LEVEL=warn`.
@@ -8845,21 +9772,35 @@ Defaults to enabled, set to "0" to disable.
 
 # Plugins
 
-Plugins in mise extend functionality. Historically they were the only way to add new tools as the only backend was asdf the way
-that backend works is every tool has its own plugin which needs to be manually installed. However now with core languages and
-backends like aqua/ubi, plugins are no longer necessary to run most tools in mise.
+Plugins in mise are a way to extend `mise` with new functionality like extra tools or environment variable management.
 
-Meanwhile, plugins have expanded beyond tools and can provide functionality like setting env vars globally without relying on a tool being installed.
+Historically it was the only way to add new tools (as the only backend was asdf).
+
+The way that backend works is every tool has its own plugin which needs to be manually installed. However, now with core tools
+and backends like aqua/ubi, plugins are no longer necessary to run most tools in mise.
 
 Tool plugins should be avoided for security reasons. New tools will not be accepted into mise built with asdf/vfox plugins unless they are very popular and
 aqua/ubi is not an option for some reason.
+
+The only exception is if the tool needs to set env vars or has a complex installation process, as plugins can provide functionality like setting env vars globally without relying on a tool being installed. They can also provide aliases for versions.
+
 If you want to integrate a new tool into mise, you should either try to get it into the aqua registry
 or see if it can be installed with ubi. Then add it to the registry.
 Aqua is definitely preferred to ubi as it has better UX and more features like slsa verification and the ability to use different logic for older versions.
 
+You can manage all installed plugins in `mise` with `mise plugins`.
+
+```shell
+mise plugins ls --urls
+# Plugin                          Url                                                     Ref  Sha
+# 1password                       https://github.com/mise-plugins/mise-1password-cli.git  HEAD f5d5aab
+# vfox-mise-plugins-vfox-dart     https://github.com/mise-plugins/vfox-dart               HEAD 1424253
+# ...
+```
+
 ## asdf Plugins
 
-mise uses asdf's plugin ecosystem under the hood. These plugins contain shell scripts like
+mise can use asdf's plugin ecosystem under the hood. These plugins contain shell scripts like
 `bin/install` (for installing) and `bin/list-all` (for listing all of the available versions).
 
 See https://github.com/jdx/mise/blob/main/registry.toml for the list of built-in plugins shorthands. See asdf's
@@ -8885,13 +9826,13 @@ of tools. One example of this is virtualenv on python runtimes:
 
 ```toml
 [tools]
-python = {version='3.11', virtualenv='.venv'}
+python = { version='3.11', virtualenv='.venv' }
 ```
 
 This will be passed to all plugin scripts as `MISE_TOOL_OPTS__VIRTUALENV=.venv`. The user can specify
-any option and it will be passed to the plugin in that format.
+any option, and it will be passed to the plugin in that format.
 
-Currently this only supports simple strings, but we can make it compatible with more complex types
+Currently, this only supports simple strings, but we can make it compatible with more complex types
 (arrays, tables) fairly easily if there is a need for it.
 
 ## Templates
@@ -8955,7 +9896,7 @@ While using `mise activate` you can have mise watch files for changes and execut
 ```bash
 [[watch_files]]
 patterns = ["src/**/*.rs"]
-script = "cargo fmt"
+run = "cargo fmt"
 ```
 
 This hook will have the following environment variables set:
@@ -8967,7 +9908,7 @@ This hook will have the following environment variables set:
 Hooks are executed with the following environment variables set:
 
 * `MISE_ORIGINAL_CWD`: The directory that the user is in.
-* `MISE_PROJECT_DIR`: The root directory of the project.
+* `MISE_PROJECT_ROOT`: The root directory of the project.
 * `MISE_PREVIOUS_DIR`: The directory that the user was in before the directory change (only if a directory change occurred).
 
 ## Shell hooks
@@ -9034,6 +9975,22 @@ script: |
 
 Alternatively, you can add the shims directory to your `PATH`, if the CI provider allows it.
 
+### Bootstrapping
+
+An alternative to calling `curl https://mise.run | sh` is to use `mise generate bootstrap` to generate a script that runs and install `mise`.
+
+```shell
+mise generate bootstrap -l -w
+```
+
+Add the `.mise/` to your `.gitignore` and commit the generated `./bin/mise` file. You can now use `./bin/mise` to install and run `mise` directly in CI.
+
+```yaml
+script: |
+  ./bin/mise install
+  ./bin/mise x -- npm test
+```
+
 ## GitHub Actions
 
 If you use GitHub Actions, we provide a mise-action that wraps the installation of Mise and the tools. All you need to do is to add the action to your workflow:
@@ -9072,7 +10029,7 @@ jobs:
 
 You can use any docker image with `mise` installed to run your CI jobs.
 Here's an example using `debian-slim` as base image:
-::: details
+::: details Example Dockerfile
 
 ```dockerfile
 FROM debian:12-slim
@@ -9095,18 +10052,60 @@ build-job:
   stage: build
   image: mise-debian-slim # Use the image you created
   variables:
-    MISE_DATA_DIR: .mise/mise-data
-    MISE_CACHE_DIR: .mise/mise-cache
+    MISE_DATA_DIR: $CI_PROJECT_DIR/.mise/mise-data
   cache:
     - key:
         prefix: mise-
         files: ["mise.toml", "mise.lock"] # mise.lock is optional, only if using `lockfile = true`
       paths:
         - $MISE_DATA_DIR
-        - $MISE_CACHE_DIR
   script:
     - mise install
     - mise exec --command 'npm build'
+```
+
+### Example with the bootstrap script
+
+An alternative is to use `mise generate bootstrap` to easily bootstrap `mise` on GitLab CI.
+
+```
+mise generate bootstrap -l -w
+```
+
+You can now use a generic docker image such as this one to run and install `mise` in CI.
+
+::: details Example Dockerfile
+
+```dockerfile
+FROM debian:12-slim
+
+RUN apt-get update  \
+    && apt-get -y --no-install-recommends install sudo curl git ca-certificates build-essential \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+:::
+
+Here's an example of a `.gitlab-ci.yml` file:
+
+```yaml
+.mise-cache: &mise-cache
+  key:
+    prefix: mise-
+    files: ["mise.toml", "./bin/mise"]
+  paths:
+    - .mise/installs
+    - .mise/mise-2025.1.3
+
+build-job:
+  stage: build
+  image: my-debian-slim-image # Use the image you created
+  cache:
+    - <<: *mise-cache
+      policy: pull-push
+  script:
+    - ./bin/mise install
+    - ./bin/mise exec --command 'npm build'
 ```
 
 ## Xcode Cloud
@@ -9158,64 +10157,91 @@ Caching `exec-env` massively improved the performance of mise since it requires 
 every time mise is initialized. Ideally, we can keep this
 behavior.
 
+## Cache auto-pruning
+
+mise will automatically delete old files in its cache directory (configured with `cache_prune_age`). Much of
+the contents are also ignored by mise if they are >24 hours old or a few days. For this reason, it's likely wasteful to store this directory in CI jobs.
+
 # shims.md
 
 # Shims
 
-::: tip
-The beginner's guide, and my blog post are helpful resources to dive deeper into shims.
+There are several ways for the `mise` context (dev tools, environment variables) to be loaded into your shell:
+
+* `mise activate` (also called "mise PATH activation") where `mise` updates your `PATH` and other environment variables every time your prompt is displayed.
+* `mise activate --shims` which uses shims to load dev tools.
+* Using `mise x|exec` or `mise r|run` for ad-hoc commands or tasks (see "neither shims nor PATH").
+
+This page will help you understand the differences between these methods and how to use them. In particular, it will help you decide if you should use shims or `mise activate` in your shell.
+
+## Overview of the `mise` activation methods {#overview}
+
+### PATH activation {#path-activation}
+
+Mise's "PATH" activation method updates environment variables every time the prompt is displayed. In particular, it updates the `PATH` environment variable, which is used by your shell to search for the programs it can run.
+
+::: info
+This is the method used when you add the `echo 'eval "$(mise activate bash)"' >> ~/.bashrc` line to your shell rc file (in this case, for bash).
 :::
+
+For example, by default, your `PATH` variable might look like this:
+
+```sh
+echo $PATH
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+```
+
+If using `mise activate`, `mise` will automatically add the required tools to `PATH`.
+
+```sh
+PATH="$HOME/.local/share/mise/installs/python/3.13.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+```
+
+In this example, the python `bin` directory was added at the beginning of the `PATH`, making it available in the current shell session.
+
+While the `PATH` design of `mise` works great in most cases, there are some situations where `shims` are preferable. This is the case when you are not using an interactive shell (for example, when using `mise` in an IDE or a script).
+
+### Shims {#mise-activate-shims}
 
 ::: warning
 `mise activate --shims` does not support all the features of `mise activate`.<br>
-See shims vs path for more info.
+See shims vs path for more information.
 :::
 
-## Introduction
-
-There are two ways for dev tools to be loaded into your shell: `mise activate` and `shims`.
-
-* Mise's "PATH" activation method updates environment variables at each prompt by modifying `PATH`
-* The "shims" method uses symlinks to the mise binary that intercept commands and load the appropriate environment
-
-While the `PATH` design of mise works great in most cases, there are some situations where shims are
-preferable. One example is when calling mise binaries from an IDE.
-
-To support this, mise does have a shim dir that can be used. It's located at `~/.local/share/mise/shims`.
+When using shims, `mise` places small executables (`shims`) in a directory that is included in your `PATH`. You can think of `shims` as symlinks to the mise binary that intercept commands and load the appropriate context.
 
 ```sh
-$ mise use -g node@20
-$ npm install -g prettier@3.1.0
-$ mise reshim # may be required if new shims need to be created after installing packages
-$ ~/.local/share/mise/shims/node -v
-v20.0.0
-$ ~/.local/share/mise/shims/prettier -v
-3.1.0
+ls -l ~/.local/share/mise/shims/node
+# [...] ~/.local/share/mise/shims/node -> ~/.local/bin/mise
 ```
+
+By default, the shim directory is located at `~/.local/share/mise/shims`. When installing a tool (for example, `node`), `mise` will add some entries for every binary provided by this tool in the `shims` directory (for example, `~/.local/share/mise/shims/node`).
+
+```sh
+mise use -g node@20
+npm install -g prettier@3.1.0
+
+~/.local/share/mise/shims/node -v
+# v20.0.0
+~/.local/share/mise/shims/prettier -v
+# 3.1.0
+```
+
+To avoid calling `~/.local/share/mise/shims/node`, you can add the `shims` directory to your `PATH`.
+
+```sh
+export PATH="$HOME/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+```
+
+This will effectively make all dev tools available in your current shell session as well as non-interactive environments.
 
 ::: tip
 `mise activate --shims` is a shorthand for adding the shims directory to PATH.
 :::
 
-::: info
-`mise reshim` actually should get called automatically if you're using npm so an explicit reshim should not be necessary
-in that scenario. Also, this bears repeating but: `mise reshim` just creates/removes the shims. People use it as a
-"fix it" button but it really should only be necessary if `~/.local/share/mise/shims` doesn't contain something it should.
-
-mise also runs a reshim anytime a tool is installed/updated/removed so you don't need to use it for those scenarios.
-
-Also don't put things in there manually, mise will just delete it next reshim.
-:::
-
 ## How to add mise shims to PATH
 
-If you prefer to use shims, you can run the following to use mise without activating it.
-
-You can use `.bashrc`/`.zshrc` instead of `.bash_profile`/`.zprofile` if you prefer to only use
-mise in interactive sessions (`.bash_profile`/`.zprofile` will work in non-interactive places
-like scripts or IDEs). Note that `mise activate` will remove the shims directory so it's fine
-to call `mise activate --shims` in the profile file then later call `mise activate` in an interactive
-session.
+The recommended way to add `shims` to `PATH` is to call `mise activate --shims` in one of your shell initialization file. For example, you can do the following:
 
 ::: code-group
 
@@ -9236,13 +10262,30 @@ echo 'mise activate fish --shims | source' >> ~/.config/fish/config.fish
 echo 'mise activate fish | source' >> ~/.config/fish/fish.config
 ```
 
-:::tip
-You can also run `export PATH="$HOME/.local/share/mise/shims:$PATH"` which is what `mise activate --shims` does.
-This can be helpful is mise may not be available at that point in time. It's also a tiny bit faster,
-but since this is only run once per shell session it's not a big deal.
 :::
 
-## Shims vs PATH
+In this example, we use `mise activate --shims` in the non-interactive shell configuration file (like `.bash_profile` or `.zprofile`) and `mise activate` in the interactive shell configuration file (like `.bashrc` or `.zshrc`)
+
+::: info
+`mise activate` will remove the shims directory from the `PATH` so it's fine
+to call `mise activate --shims` in your shell profile file then later call `mise activate` in an interactive session.
+:::
+
+* You can also decide to use only `shims` if you prefer, though this comes with some limitations.
+* An alternative to `mise activate --shims` is to use `export PATH="$HOME/.local/share/mise/shims:$PATH"`. This can be helpful if `mise` is not yet available at that point in time.
+
+### mise reshim
+
+To force `mise` to update the content of the `shims` directory, you can manually call `mise reshim`.
+
+Note that `mise` already runs a reshim anytime a tool is installed/updated/removed, so you don't need to use it for those scenarios. It is also done by default when using most tools such as `npm`.
+
+`mise reshim` only creates/removes the shims. Some users sometimes use it as a
+"fix it" button, but it is only necessary if `~/.local/share/mise/shims` doesn't contain something it should.
+
+Do not add additional executable in the `mise` directory, `mise` will delete them with the next reshim.
+
+## Shims vs PATH {#shims-vs-path}
 
 The following features are affected when shims are used **instead** of PATH activation:
 
@@ -9250,37 +10293,18 @@ The following features are affected when shims are used **instead** of PATH acti
 * Most hooks won't trigger
 * The unix `which` command points to the shim, obscuring the real executable
 
-In general, I recommend using PATH (`mise activate`) instead of shims for *interactive* situations. The
-way activate works is every time the prompt is displayed, mise-en-place will determine what PATH and other
-env vars should be and export them. This is why it doesn't work well for non-interactive situations like
-scripts. The prompt never gets displayed so you have to manually call `mise hook-env` to get mise to update
-the env vars.
+In general, using PATH (`mise activate`) instead of shims for *interactive* situations is recommended.
 
-Also, if you run a set of commands in a single line like the following:
-
-```sh
-cd ~
-cd ~/src/proj1 && node -v && cd ~/src/proj2 && node -v
-```
-
-Using `mise activate`, this will use the tools from `~`, not from `~/src/proj1` or `~/src/proj2` even
-after the directory changed because the prompt never got displayed. That might be obvious to you, not sure,
-what I'm trying to convey though is just think of mise running just before your prompt gets displayed—because
-that literally is what is happening. It's not a magical utility that is capable of having your environment
-always setup perfectly in every situation even though it might normally "feel" that way.
-
-Note that shims *will* work with the inline example above.
-
-::: info
-This may be fixable at least for some shells if they support a hook for directory change, however
-some investigation will need to be done. See #1294 for details.
-:::
+The way `activate` works is every time the prompt is displayed, mise-en-place will determine what PATH and other
+env vars should be and export them. This is why it doesn't work well for non-interactive situations like scripts. The prompt never gets displayed so you have to manually call `mise hook-env` to get mise to update
+the env vars. (though there are exceptions, see hook on `cd`)
 
 ### Env vars and shims
 
-A downside of shims is the "mise environment" is only loaded when a shim is called. This means if you
-set an environment variable in `mise.toml`, it will only be run when a shim is called. So the following
-only works under `mise activate`:
+A downside of shims is that the environment variables are only loaded when a shim is called. This means if you
+set an environment variable in `mise.toml`, it will only be used when a shim is called.
+
+The following example only works under `mise activate`:
 
 ```sh
 $ mise set NODE_ENV=production
@@ -9296,8 +10320,7 @@ $ node -p process.env.NODE_ENV
 production
 ```
 
-Also, `mise x|exec` and `mise r|run` can be used to get the environment even if you don't need any mise
-tools:
+Also, `mise x|exec` and `mise r|run` can be used to get the environment even if you don't need any mise tools:
 
 ```sh
 $ mise set NODE_ENV=production
@@ -9308,8 +10331,7 @@ production
 ```
 
 ::: tip
-In general, tasks are a good way to ensure that the mise environment is always loaded so
-this isn't a problem.
+In general, tasks are a good way to ensure that the mise environment is always loaded.
 :::
 
 ### Hooks and shims
@@ -9318,26 +10340,93 @@ The hooks `cd`, `enter`, `exit`, and `watch_files` only trigger with `mise activ
 
 ### `which`
 
-`which` is a command that I personally find great value in. shims effectively "break" `which` and
-cause it to show the location of the shim. Of course `mise which` will show the location but I prefer
-the "cleanliness" of running `which node` and getting back a real path with a version number inside of it.
-e.g:
+`which` is a command that a lot of users find great value in. Using shims effectively "break" `which` and cause it to show the location of the shim. A workaround is to use `mise which` will show the actual location. Some users prefer the "cleanliness" of running `which node` and getting back a real path with a version number inside of it. e.g:
 
 ```sh
 $ which node
-/Users/jdx/.mise/installs/node/20/bin/node
+~/.mise/installs/node/20/bin/node
 ```
 
-## Hook on `cd`
+### Performance
 
-Some version managers modify the behavior of `cd`. That might seem like the ideal method of making a version
-manager, it has tons of gaps. It doesn't work if you use `pushd|popd` or other commands that modify PWD—though
-some shells have a "chpwd" hook that would. It doesn't run if you modify the `mise.toml` file.
+Truthfully, you're probably not going to notice a difference in performance when using shims vs. using `mise activate`.
 
-The upside is that it doesn't run as frequently but since mise is written in rust the cost for executing
-mise is negligible (~4-5ms).
+* Since mise runs every time the prompt is displayed with `mise activate`, you'll pay a few ms cost
+  every time the prompt is displayed. Regardless of whether you're actively using a mise tool, you'll
+  pay that penalty every time you run any command. It does have some short-circuiting logic to make it faster
+  if there are no changes, but it doesn't help much unless you have a very complex setup.
+* shims have basically the same performance profile but run when the shim is called. This makes some situations
+  better, and some worse.
 
-## .zshrc/.bashrc files
+If you are calling a shim from within a bash script like this:
+
+```sh
+for i in {1..500}; do
+    node script.js
+done
+```
+
+You'll pay the mise penalty every time you call it within the loop. However, if you did the same thing
+but call a subprocess from within a shim (say, node creating a node subprocess), you will *not* pay a new
+penalty. This is because when a shim is called, mise sets up the environment with PATH for all tools and
+those PATH entries will be before the shim directory.
+
+In other words, which is better in terms of performance just depends on how you're calling mise. Really
+though most users will not notice a few ms lag on their terminal caused by `mise activate`.
+
+The only difference between these would be that using `hook-env` you will need to call
+it again if you change directories but with shims that won't be necessary. The shims directory will be
+removed by `mise activate` automatically so you won't need to worry about dealing with shims in your PATH.
+
+## Neither shims nor PATH {#neither-shims-nor-path}
+
+There are many ways to load the mise environment that don't require either, chiefly:
+`mise x|exec`, `mise r|run` or `mise en`.
+
+These will both load all the tools and env vars before executing something. This might
+be ideal because you don't need to modify your shell rc file at all and the environment is always loaded
+explicitly. Some might find this is a "clean" way of working.
+
+The obvious downside is that anytime one wants to use `mise` they need to prefix it with `mise exec|run`. Though, you can easily alias them to `mx|mr`.
+
+* This is what one prefers if they like things to be precise over "easy".
+* Or perhaps if you're just wanting to use mise on a single project because that's what your team uses and prefer
+  not to use it to manage anything else on your system. Using a shell extension for that use-case
+  would be overkill.
+
+::: info This is the method Jeff uses
+
+> Part of the reason for this is I often need to make sure I'm on my development version of mise. If you
+> work on mise yourself I would recommend working in a similar way and disabling `mise activate` or shims
+> while you are working on it.
+>
+> See How I use mise for more information.
+
+:::
+
+## Hook on `cd` {#hook-on-cd}
+
+For some shells (`bash`, `zsh`, `fish`), `mise` hooks into the `cd` command, while in others, it only runs when the prompt is displayed. This relies on `chpwd` in `zsh`, `PROMPT_COMMAND` in `bash`, and `fish_prompt` in `fish`.
+
+The upside is that it doesn't run as frequently but since mise is written in Rust the cost for executing
+mise is negligible (a few ms).
+
+::: details Running several commands in a single line
+
+If you run a set of commands in a single line like the following:
+
+```sh
+cd ~
+cd ~/src/proj1 && node -v && cd ~/src/proj2 && node -v
+```
+
+If using `mise activate`, in shell without hook on cd, this will use the tools from `~`, not from `~/src/proj1` or `~/src/proj2` even after the directory changed.
+
+This is because, in these shells `mise` runs just before your prompt gets displayed whereas in others, it hooks on `cd`. Note that shims *will* always work with the inline example above.
+
+:::
+
+## Using mise in rc files
 
 rc files like `.zshrc` are unusual. It's a script but also runs only for interactive sessions. If you need
 to access tools provided by mise inside of an rc file you have 2 options:
@@ -9358,61 +10447,6 @@ node some_script.js
 
 :::
 
-The only difference I can think of between these would be that using `hook-env` you will need to call
-it again if you change directories but with shims that won't be necessary. The shims directory will be
-removed by `mise activate` automatically so you won't need to worry about dealing with shims in your PATH.
-
-## Performance
-
-Truthfully, you're probably not going to notice much in the way of performance with any solution here.
-However, I would like to document what the tradeoffs are since it's not as simple as "shims are slow".
-In asdf they are, but that's because asdf is written in bash. In mise the cost of the shims are negligible.
-
-First, since mise runs every time the prompt is displayed with `mise activate`, you'll pay a few ms cost
-every time the prompt is displayed. Regardless of whether or not you're actively using a mise tool, you'll
-pay that penalty every time you run any command. It does have some short-circuiting logic to make it faster
-if there are no changes but it doesn't help much unless you have a very complex setup.
-
-shims have basically the same performance profile but run when the shim is called. This makes some situations
-better, and some worse.
-
-If you are calling a shim from within a bash script like this:
-
-```sh
-for i in {1..500}; do
-    node script.js
-done
-```
-
-You'll pay the mise penalty every time you call it within the loop. However, if you did the same thing
-but call a subprocess from within a shim (say, node creating a node subprocess), you will *not* pay a new
-penalty. This is because when a shim is called, mise sets up the environment with PATH for all tools and
-those PATH entries will be before the shim directory.
-
-In other words, which is better in terms of performance just depends on how you're calling mise. Really
-though I think most users won't notice a 5ms lag on their terminal so I suggest `mise activate`.
-
-## Neither shims nor PATH
-
-I don't actually use either of these methods. There are many
-ways to load the mise environment that don't require either, chiefly: `mise x|exec` and `mise r|run`.
-
-These will both load all of the tools and env vars before executing something. I find this to be
-ideal because I don't need to modify my shell rc file at all and my environment is always loaded
-explicitly. I find this a "clean" way of working.
-
-The obvious downside is that anytime I want to use `mise` I need to prefix it with `mise exec|run`,
-though I alias them to `mx|mr`.
-
-This is what I'd recommend if you're like me and prefer things to be precise over "easy". Or perhaps
-if you're just wanting to use mise on a single project because that's what your team uses and prefer
-not to use it to manage anything else on your system. IMO using a shell extension for that use-case
-would be overkill.
-
-Part of the reason for this is I often need to make sure I'm on my development version of mise. If you
-work on mise yourself I would recommend working in a similar way and disabling `mise activate` or shims
-while you are working on it.
-
 # aliases.md
 
 # Aliases
@@ -9422,7 +10456,7 @@ while you are working on it.
 Tools can be aliased so that something like `node` which normally maps to `core:node` can be changed
 to something like `asdf:company/our-custom-node` instead.
 
-```toml
+```toml [~/.config/mise/config.toml]
 [alias]
 node = 'asdf:company/our-custom-node' # shorthand for https://github.com/company/our-custom-node
 erlang = 'asdf:https://github.com/company/our-custom-erlang'
@@ -9499,6 +10533,20 @@ $ hivemind --help
 Hivemind version 1.1.0
 ```
 
+## Tool Options
+
+The following tool-options are available for the `go` backend—these
+go in `[tools]` in `mise.toml`.
+
+### `tags`
+
+Specify go build tags (passed as `go install --tags`):
+
+```toml
+[tools]
+"go:github.com/golang-migrate/migrate/v4/cmd/migrate" = { version = "latest", tags = "postgres" }
+```
+
 # ubi.md
 
 # Ubi Backend
@@ -9549,6 +10597,17 @@ use the `exe` option to specify the executable name:
 "ubi:cli/cli" = { version = "latest", exe = "gh" } # github's cli
 ```
 
+### `rename_exe`
+
+The `rename_exe` option allows you to specify the name of the executable once it has been extracted.
+
+use the `rename_exe` option to specify the target executable name:
+
+```toml
+[tools]
+"ubi:cli/cli" = { version = "latest", exe = "gh", rename_exe = "github" } # github's cli
+```
+
 ### `matching`
 
 Set a string to match against the release filename when there are multiple files for your
@@ -9558,8 +10617,65 @@ then this will be ignored.
 
 ```toml
 [tools]
-"ubi:BurntSushi/ripgrep" = { matching = "musl" }
+"ubi:BurntSushi/ripgrep" = { version = "latest", matching = "musl" }
 ```
+
+### `provider`
+
+Set the provider type to use for fetching assets and release information. Either `github` or `gitlab` (default is `github`).
+Ensure the `provider` is set to the correct type if you use `api_url` as the type probably cannot be derived correctly
+from the URL.
+
+```toml
+[tools]
+"ubi:gitlab-org/cli" = { version = "latest", exe = "glab", provider = "gitlab" }
+```
+
+### `api_url`
+
+Set the URL for the provider's API. This is useful when using a self-hosted instance.
+
+```toml
+[tools]
+"ubi:acme/my-tool" = { version = "latest", provider= "gitlab", api_url = "https://gitlab.acme.com/api/v4" }
+```
+
+### `extract_all`
+
+Set to `true` to extract all files in the tarball instead of just the "bin". Not compatible with `exe` nor `rename_exe`.
+
+```toml
+[tools]
+"ubi:helix-editor/helix" = { version = "latest", extract_all = "true" }
+```
+
+### `bin_path`
+
+The directory in the tarball where the binary(s) are located. This is useful when the binary is not in the root of the tarball.
+This only makes sense when `extract_all` is set to `true`.
+
+```toml
+[tools]
+"ubi:BurntSushi/ripgrep" = { version = "latest", extract_all = "true", bin_path = "target/release" }
+```
+
+### `tag_regex`
+
+Set a regex to filter out tags that don't match the regex. This is useful when a vendor has a bunch of
+releases for unrelated CLIs in the same repo. For example, `cargo-bins/cargo-binstall` has a bunch of
+releases for unrelated CLIs that are not `cargo-binstall`. This option can be used to filter out those
+releases.
+
+```toml
+[tools]
+"ubi:cargo-bins/cargo-binstall" = { version = "latest", tag_regex = "^\d+\." }
+```
+
+## Self-hosted GitHub/GitLab
+
+If you are using a self-hosted GitHub/GitLab instance, you can set the `provider` and `api_url` tool options.
+Additionally, you can set the `MISE_GITHUB_ENTERPRISE_TOKEN` or `MISE_GITLAB_ENTERPRISE_TOKEN` environment variable to
+authenticate with the API.
 
 ## Supported Ubi Syntax
 
@@ -9991,13 +11107,18 @@ import Settings from '/components/settings.vue';
 
 # asdf Backend
 
-asdf is the original backend for mise. It relies on asdf plugins for each tool. asdf plugins are
-more risky to use because they're typically written by a single developer unrelated to the tool vendor
-they also do not function on Windows.
+`asdf` is the original backend for mise.
+
+It relies on asdf plugins for each tool. asdf plugins are more risky to use because they're typically written by a single developer unrelated to the tool vendor. They also do not function on Windows.
+
+asdf plugins are not used for tools inside the registry whenever possible. Sometimes it is not possible to use more secure backends like aqua/ubi because tools have complex install setups or need to export env vars.
+
+All of these are hosted in the mise-plugins org to secure the supply chain so you do not need to rely on plugins maintained by anyone except me.
+
 Because of the extra complexity of asdf tools and security concerns we are actively moving tools in
 the registry away from asdf where possible to backends like aqua and ubi which don't require plugins.
 That said, not all tools can function with ubi/aqua if they have a unique installation process or
-need to set env vars other than PATH.
+need to set env vars other than `PATH`.
 
 ## Writing asdf plugins for mise
 
@@ -10090,9 +11211,13 @@ which it can't do with `version_filter`.
 
 # Backends
 
-In addition to asdf plugins, you can also directly install CLIs with some package managers.
+Backends are the way mise installs tools and plugins. Each backend is responsible for managing the installation and usage of a specific type of tool or package manager. This allows mise to support a wide variety of tools and languages by leveraging different backends.
 
-* asdf
+When you run the `mise use` command, mise will determine the appropriate backend to use based on the tool you are trying to manage. The backend will then handle the installation, configuration, and any other necessary steps to ensure the tool is ready to use.
+
+Below is a list of the available backends in mise:
+
+* asdf (provide tools through plugins)
 * aqua
 * cargo
 * dotnet <Badge type="warning" text="experimental" />
@@ -10102,7 +11227,7 @@ In addition to asdf plugins, you can also directly install CLIs with some packag
 * pipx
 * spm <Badge type="warning" text="experimental" />
 * ubi
-* vfox <Badge type="warning" text="experimental" />
+* vfox (provide tools through plugins) <Badge type="warning" text="experimental" />
 
 ::: tip
 If you'd like to contribute a new backend to mise, they're not difficult to write.
@@ -10287,19 +11412,14 @@ pass `false` to disable:
 > or pyenv but for any language), it manages dev tools like node,
 > python, cmake, terraform, and hundreds more.*
 
-::: tip
-New developer? Try reading the Beginner's Guide
-for a gentler introduction.
-:::
+`mise` is a tool that manages installations of programming language runtimes and other tools for local development. For example, it can be used to manage multiple versions of Node.js, Python, Ruby, Go, etc. on the same machine.
 
-mise is a tool that manages installations of programming language runtimes and other tools for local development. For example, it can be used to manage multiple versions of Node.js, Python, Ruby, Go, etc. on the same machine.
-
-Once activated, mise will automatically switch between different versions of tools based on the directory you're in.
+Once activated, mise can automatically switch between different versions of tools based on the directory you're in.
 This means that if you have a project that requires Node.js 18 and another that requires Node.js 22, mise will automatically switch between them as you move between the two projects. See tools available for mise with in the registry.
 
 To know which tool version to use, mise will typically look for a `mise.toml` file in the current directory and its parents. To get an idea of how tools are specified, here is an example of a mise.toml file:
 
-```toml
+```toml [mise.toml]
 [tools]
 node = '22'
 python = '3'
