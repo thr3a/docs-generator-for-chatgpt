@@ -89,6 +89,20 @@ builder:
     options: mode=max,image-manifest=true,oci-mediatypes=true
 ```
 
+## Building without a Dockerfile locally
+
+Your application image can also be built using cloud native buildpacks instead of using a `Dockerfile` and the default `docker build` process. This example uses Heroku's ruby and Procfile buildpacks to build your final image.
+
+```yaml
+  pack:
+    builder: heroku/builder:24
+    buildpacks:
+      - heroku/ruby
+      - heroku/procfile
+```
+
+To provide any additional customizations you can add a project descriptor file (`project.toml`) in the root of your application.
+
 ### GHA cache configuration
 
 To make it work on the GitHub action workflow, you need to set up the buildx and expose authentication configuration for the cache.
@@ -266,6 +280,15 @@ See Hooks for more information:
 
 ```yaml
 hooks_path: /user_home/kamal/hooks
+```
+
+## Error pages
+
+A directory relative to the app root to find error pages for the proxy to serve.
+Any files in the format 4xx.html or 5xx.html will be copied to the hosts.
+
+```yaml
+error_pages_path: public
 ```
 
 ## Require destinations
@@ -475,6 +498,40 @@ env:
     - DB_PASSWORD
 ```
 
+## Aliased secrets
+
+You can also alias secrets to other secrets using a `:` separator.
+
+This is useful when the ENV name is different from the secret name. For example, if you have two
+places where you need to define the ENV variable `DB_PASSWORD`, but the value is different depending
+on the context.
+
+```shell
+SECRETS=$(kamal secrets fetch ...)
+
+MAIN_DB_PASSWORD=$(kamal secrets extract MAIN_DB_PASSWORD $SECRETS)
+SECONDARY_DB_PASSWORD=$(kamal secrets extract SECONDARY_DB_PASSWORD $SECRETS)
+```
+
+```yaml
+env:
+  secret:
+    - DB_PASSWORD:MAIN_DB_PASSWORD
+  tags:
+    secondary_db:
+      secret:
+        - DB_PASSWORD:SECONDARY_DB_PASSWORD
+accessories:
+  main_db_accessory:
+    env:
+      secret:
+        - DB_PASSWORD:MAIN_DB_PASSWORD
+  secondary_db_accessory:
+    env:
+      secret:
+        - DB_PASSWORD:SECONDARY_DB_PASSWORD
+```
+
 ## Tags
 
 Tags are used to add extra env variables to specific hosts.
@@ -641,15 +698,20 @@ See Docker Registry for more information:
 
 ## Accessory hosts
 
-Specify one of `host`, `hosts`, or `roles`:
+Specify one of `host`, `hosts`, `role`, `roles`, `tag` or `tags`:
 
 ```yaml
     host: mysql-db1
     hosts:
       - mysql-db1
       - mysql-db2
+    role: mysql
     roles:
       - mysql
+    tag: writer
+    tags:
+      - writer
+      - reader
 ```
 
 ## Custom command
@@ -1035,6 +1097,22 @@ Defaults to true:
   local: true
 ```
 
+## Buildpack configuration
+
+The build configuration for using pack to build a Cloud Native Buildpack image.
+
+For additional buildpack customization options you can create a project descriptor
+file(project.toml) that the Pack CLI will automatically use.
+See https://buildpacks.io/docs/for-app-developers/how-to/build-inputs/use-project-toml/ for more information.
+
+```yaml
+  pack:
+    builder: heroku/builder:24
+    buildpacks:
+      - heroku/ruby
+      - heroku/procfile
+```
+
 ## Builder cache
 
 The type must be either 'gha' or 'registry'.
@@ -1321,12 +1399,6 @@ options that are set when deploying the application, not when booting the proxy.
 They are application-specific, so they are not shared when multiple applications
 run on the same proxy.
 
-The proxy is enabled by default on the primary role but can be disabled by
-setting `proxy: false`.
-
-It is disabled by default on all other roles but can be enabled by setting
-`proxy: true` or providing a proxy configuration.
-
 ```yaml
 proxy:
 ```
@@ -1375,6 +1447,37 @@ Defaults to `false`:
   ssl: true
 ```
 
+## Custom SSL certificate
+
+In some cases, using Let's Encrypt for automatic certificate management is not an
+option, for example if you are running from more than one host.
+
+Or you may already have SSL certificates issued by a different Certificate Authority (CA).
+
+Kamal supports loading custom SSL certificates directly from secrets. You should
+pass a hash mapping the `certificate_pem` and `private_key_pem` to the secret names.
+
+```yaml
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+```
+
+### Notes
+
+* If the certificate or key is missing or invalid, deployments will fail.
+* Always handle SSL certificates and private keys securely. Avoid hard-coding them in source control.
+
+## SSL redirect
+
+By default, kamal-proxy will redirect all HTTP requests to HTTPS when SSL is enabled.
+If you prefer that HTTP traffic is passed through to your application (along with
+HTTPS traffic), you can disable this redirect by setting `ssl_redirect: false`:
+
+```yaml
+  ssl_redirect: false
+```
+
 ## Forward headers
 
 Whether to forward the `X-Forwarded-For` and `X-Forwarded-Proto` headers.
@@ -1394,6 +1497,24 @@ How long to wait for requests to complete before timing out, defaults to 30 seco
 
 ```yaml
   response_timeout: 10
+```
+
+## Path-based routing
+
+For applications that split their traffic to different services based on the request path,
+you can use path-based routing to mount services under different path prefixes.
+
+```yaml
+  path_prefix: '/api'
+```
+
+By default, the path prefix will be stripped from the request before it is forwarded upstream.
+So in the example above, a request to /api/users/123 will be forwarded to web-1 as /users/123.
+To instead forward the request with the original path (including the prefix),
+specify --strip-path-prefix=false
+
+```yaml
+  strip_path_prefix: false
 ```
 
 ## Healthcheck
@@ -1443,6 +1564,33 @@ By default, `Cache-Control`, `Last-Modified`, and `User-Agent` request headers a
     response_headers:
       - X-Request-ID
       - X-Request-Start
+```
+
+## Enabling/disabling the proxy on roles
+
+The proxy is enabled by default on the primary role but can be disabled by
+setting `proxy: false` in the primary role's configuration.
+
+```yaml
+servers:
+  web:
+    hosts:
+     - ...
+    proxy: false
+```
+
+It is disabled by default on all other roles but can be enabled by setting
+`proxy: true` or providing a proxy configuration for that role.
+
+```yaml
+servers:
+  web:
+    hosts:
+     - ...
+  web2:
+    hosts:
+     - ...
+    proxy: true
 ```
 
 # lock.md
@@ -1591,7 +1739,7 @@ Prune old containers and images.
 Kamal keeps the last 5 deployed containers and the images they are using. Pruning deletes all older containers and images.
 
 ```bash
-$ kamal help prune
+$ kamal prune
 Commands:
   kamal prune all             # Prune unused images and stopped containers
   kamal prune containers      # Prune all stopped containers, except the last n (default 5)
@@ -1615,16 +1763,37 @@ Commands:
   kamal app boot              # Boot app on servers (or reboot app if already running)
   kamal app containers        # Show app containers on servers
   kamal app details           # Show details about app containers
-  kamal app exec [CMD]        # Execute a custom command on servers within the app container (use --help to show options)
+  kamal app exec [CMD...]     # Execute a custom command on servers within the app container (use --help to show options)
   kamal app help [COMMAND]    # Describe subcommands or one specific subcommand
   kamal app images            # Show app images on servers
+  kamal app live              # Set the app to live mode
   kamal app logs              # Show log lines from app on servers (use --help to show options)
+  kamal app maintenance       # Set the app to maintenance mode
   kamal app remove            # Remove app containers and images from servers
   kamal app stale_containers  # Detect app stale containers
   kamal app start             # Start existing app container on servers
   kamal app stop              # Stop app container on servers
   kamal app version           # Show app version currently running on servers
 ```
+
+## Maintenance Mode
+
+You can set your application to maintenance mode, by running `kamal app maintenance`.
+
+When in maintenance mode, kamal-proxy will intercept requests and return a 503 responses.
+
+There is a built in HTML template for the error page. You can customise the error message
+via the --message option:
+
+```shell
+$ kamal app maintenance --message "Scheduled maintenance window from ..."
+```
+
+You can also provide custom error pages by setting the `error_pages_path` configuration option.
+
+## Live Mode
+
+You can set your application back to live mode, by running `kamal app live`.
 
 # secrets.md
 
@@ -1840,6 +2009,40 @@ kamal secrets fetch --adapter=gcp \
   my-secret
 ```
 
+## Passbolt
+
+First, install and configure the Passbolt CLI.
+
+Passbolt organizes secrets in folders (like `coolfolder`) and these folders can be nested (like `coolfolder/prod`, `coolfolder/stg`, etc). You can access secrets in these folders in two ways:
+
+1. Using the `--from` option to specify the folder path `--from coolfolder`
+2. Prefixing the secret names with the folder path `coolfolder/REGISTRY_PASSWORD`
+
+Use the adapter `passbolt`:
+
+```bash
+# Fetch passwords from root (no folder)
+kamal secrets fetch --adapter passbolt REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from a folder using --from
+kamal secrets fetch --adapter passbolt --from coolfolder REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords from a nested folder using --from
+kamal secrets fetch --adapter passbolt --from coolfolder/subfolder REGISTRY_PASSWORD DB_PASSWORD
+
+# Fetch passwords by prefixing the folder path to the secret name
+kamal secrets fetch --adapter passbolt coolfolder/REGISTRY_PASSWORD coolfolder/DB_PASSWORD
+
+# Fetch passwords from multiple folders
+kamal secrets fetch --adapter passbolt coolfolder/REGISTRY_PASSWORD otherfolder/DB_PASSWORD
+
+# Extract the secret values
+kamal secrets extract REGISTRY_PASSWORD <SECRETS-FETCH-OUTPUT>
+kamal secrets extract DB_PASSWORD <SECRETS-FETCH-OUTPUT>
+```
+
+The passbolt adapter does not use the `--account` option, if given it will be ignored.
+
 # details.md
 
 # kamal details
@@ -1903,7 +2106,7 @@ $ kamal help
   kamal details             # Show details about all containers
   kamal docs [SECTION]      # Show Kamal configuration documentation
   kamal help [COMMAND]      # Describe available commands or one specific command
-  kamal init                # Create config stub in config/deploy.yml and env stub in .env
+  kamal init                # Create config stub in config/deploy.yml and secrets stub in .kamal
   kamal lock                # Manage the deploy lock
   kamal proxy               # Manage kamal-proxy
   kamal prune               # Prune old application images and containers
@@ -2075,7 +2278,7 @@ Returns the version of Kamal you have installed.
 
 ```bash
 $ kamal version
-2.5.2
+2.7.0
 ```
 
 # index.md
@@ -2093,8 +2296,8 @@ $ kamal build
 Commands:
   kamal build create          # Create a build setup
   kamal build deliver         # Build app and push app image to registry then pull image on servers
-  kamal build dev             # Build using the working directory, tag it as dirty, and push to local image store.
   kamal build details         # Show build setup
+  kamal build dev             # Build using the working directory, tag it as dirty, and push to local image store.
   kamal build help [COMMAND]  # Describe subcommands or one specific subcommand
   kamal build pull            # Pull app image from registry onto servers
   kamal build push            # Build and push app image to registry
@@ -2319,16 +2522,17 @@ Run `kamal accessory` to view and manage your accessories.
 ```bash
 $ kamal accessory
 Commands:
-  kamal accessory boot [NAME]        # Boot new accessory service on host (use NAME=all to boot all accessories)
-  kamal accessory details [NAME]     # Show details about accessory on host (use NAME=all to show all accessories)
-  kamal accessory exec [NAME] [CMD]  # Execute a custom command on servers (use --help to show options)
-  kamal accessory help [COMMAND]     # Describe subcommands or one specific subcommand
-  kamal accessory logs [NAME]        # Show log lines from accessory on host (use --help to show options)
-  kamal accessory reboot [NAME]      # Reboot existing accessory on host (stop container, remove container, start new container; use NAME=all to boot all accessories)
-  kamal accessory remove [NAME]      # Remove accessory container, image and data directory from host (use NAME=all to remove all accessories)
-  kamal accessory restart [NAME]     # Restart existing accessory container on host
-  kamal accessory start [NAME]       # Start existing accessory container on host
-  kamal accessory stop [NAME]        # Stop existing accessory container on host
+  kamal accessory boot [NAME]           # Boot new accessory service on host (use NAME=all to boot all accessories)
+  kamal accessory details [NAME]        # Show details about accessory on host (use NAME=all to show all accessories)
+  kamal accessory exec [NAME] [CMD...]  # Execute a custom command on servers within the accessory container (use --help to show options)
+  kamal accessory help [COMMAND]        # Describe subcommands or one specific subcommand
+  kamal accessory logs [NAME]           # Show log lines from accessory on host (use --help to show options)
+  kamal accessory reboot [NAME]         # Reboot existing accessory on host (stop container, remove container, start new container; use NAME=all to boot all accessories)
+  kamal accessory remove [NAME]         # Remove accessory container, image and data directory from host (use NAME=all to remove all accessories)
+  kamal accessory restart [NAME]        # Restart existing accessory container on host
+  kamal accessory start [NAME]          # Start existing accessory container on host
+  kamal accessory stop [NAME]           # Stop existing accessory container on host
+  kamal accessory upgrade               # Upgrade accessories from Kamal 1.x to 2.0 (restart them in 'kamal' network)
 ```
 
 To update an accessory, update the image in your config and run `kamal accessory reboot [NAME]`.
@@ -2383,16 +2587,16 @@ Kamal uses kamal-proxy to proxy requests to the application containers, allowing
 ```bash
 $ kamal proxy
 Commands:
-  kamal proxy boot            # Boot proxy on servers
+  kamal proxy boot                         # Boot proxy on servers
   kamal proxy boot_config <set|get|reset>  # Manage kamal-proxy boot configuration
-  kamal proxy details         # Show details about proxy container from servers
-  kamal proxy help [COMMAND]  # Describe subcommands or one specific subcommand
-  kamal proxy logs            # Show log lines from proxy on servers
-  kamal proxy reboot          # Reboot proxy on servers (stop container, remove container, start new container)
-  kamal proxy remove          # Remove proxy container and image from servers
-  kamal proxy restart         # Restart existing proxy container on servers
-  kamal proxy start           # Start existing proxy container on servers
-  kamal proxy stop            # Stop existing proxy container on servers
+  kamal proxy details                      # Show details about proxy container from servers
+  kamal proxy help [COMMAND]               # Describe subcommands or one specific subcommand
+  kamal proxy logs                         # Show log lines from proxy on servers
+  kamal proxy reboot                       # Reboot proxy on servers (stop container, remove container, start new container)
+  kamal proxy remove                       # Remove proxy container and image from servers
+  kamal proxy restart                      # Restart existing proxy container on servers
+  kamal proxy start                        # Start existing proxy container on servers
+  kamal proxy stop                         # Stop existing proxy container on servers
 ```
 
 When you want to upgrade kamal-proxy, you can call `kamal proxy reboot`. This is going to cause a small outage on each server and will prompt for confirmation.
@@ -2435,6 +2639,14 @@ The configuration will be loaded at boot time when calling `kamal proxy boot` or
 # kamal registry
 
 Log in and out of the Docker registry on your servers.
+
+```bash
+$ kamal registry
+Commands:
+  kamal registry help [COMMAND]  # Describe subcommands or one specific subcommand
+  kamal registry login           # Log in to registry locally and remotely
+  kamal registry logout          # Log out of registry locally and remotely
+```
 
 Examples:
 
@@ -2483,7 +2695,7 @@ Commands:
   kamal details             # Show details about all containers
   kamal docs [SECTION]      # Show Kamal configuration documentation
   kamal help [COMMAND]      # Describe available commands or one specific command
-  kamal init                # Create config stub in config/deploy.yml and env stub in .env
+  kamal init                # Create config stub in config/deploy.yml and secrets stub in .kamal
   kamal lock                # Manage the deploy lock
   kamal proxy               # Manage kamal-proxy
   kamal prune               # Prune old application images and containers
