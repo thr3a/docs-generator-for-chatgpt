@@ -1239,20 +1239,31 @@ The value can also be a boolean to enable or disable SBOM generation.
 
 The default registry is Docker Hub, but you can change it using `registry/server`.
 
+## Using a local container registry
+
+If the registry server starts with `localhost`, Kamal will start a local Docker registry
+on that port and push the app image to it.
+
+```yaml
+registry:
+  server: localhost:5555
+```
+
+## Using Docker Hub as the container registry
+
 By default, Docker Hub creates public repositories. To avoid making your images public,
 set up a private repository before deploying, or change the default repository privacy
 settings to private in your Docker Hub settings.
 
-A reference to a secret (in this case, `DOCKER_REGISTRY_TOKEN`) will look up the secret
+A reference to a secret (in this case, `KAMAL_REGISTRY_PASSWORD`) will look up the secret
 in the local environment:
 
 ```yaml
 registry:
-  server: registry.digitalocean.com
   username:
-    - DOCKER_REGISTRY_TOKEN
+    - <your docker hub username>
   password:
-    - DOCKER_REGISTRY_TOKEN
+    - KAMAL_REGISTRY_PASSWORD
 ```
 
 ## Using AWS ECR as the container registry
@@ -1503,13 +1514,29 @@ How long to wait for requests to complete before timing out, defaults to 30 seco
 
 For applications that split their traffic to different services based on the request path,
 you can use path-based routing to mount services under different path prefixes.
+Usage sample: path\_prefix: '/api'
+
+You can also specify multiple paths in two ways.
+
+When using path\_prefix you can supply multiple routes separated by commas.
 
 ```yaml
-  path_prefix: '/api'
+  path_prefix: "/api,/oauth_callback"
+```
+
+You can also specify paths as a list of paths, the configuration will be
+rolled together into a comma separated string.
+
+```yaml
+  path_prefixes:
+    - "/api"
+    - "/oauth_callback"
 ```
 
 By default, the path prefix will be stripped from the request before it is forwarded upstream.
+
 So in the example above, a request to /api/users/123 will be forwarded to web-1 as /users/123.
+
 To instead forward the request with the original path (including the prefix),
 specify --strip-path-prefix=false
 
@@ -2246,7 +2273,7 @@ The deployment process is:
 2. Build the app image, push it to the registry, and pull it onto the servers.
 3. Ensure kamal-proxy is running and accepting traffic on ports 80 and 443.
 4. Start a new container with the version of the app that matches the current Git version hash.
-5. Tell kamal-proxy to route traffic to the new container once it is responding with `200 OK` to `GET /up`.
+5. Tell kamal-proxy to route traffic to the new container once it is responding with `200 OK` to `GET /up` on port 80.
 6. Stop the old container running the previous version of the app.
 7. Prune unused images and stopped containers to ensure servers don't fill up.
 
@@ -2278,7 +2305,7 @@ Returns the version of Kamal you have installed.
 
 ```bash
 $ kamal version
-2.7.0
+2.8.2
 ```
 
 # index.md
@@ -2640,13 +2667,14 @@ The configuration will be loaded at boot time when calling `kamal proxy boot` or
 
 Log in and out of the Docker registry on your servers.
 
-```bash
+````bash
 $ kamal registry
 Commands:
   kamal registry help [COMMAND]  # Describe subcommands or one specific subcommand
-  kamal registry login           # Log in to registry locally and remotely
-  kamal registry logout          # Log out of registry locally and remotely
-```
+  kamal registry login           # Log in to remote registry locally and remotely
+  kamal registry logout          # Log out of remote registry locally and remotely
+  kamal registry remove          # Remove local registry or log out of remote registry locally and remotely
+  kamal registry setup           # Setup local registry or log in to remote registry locally and remotely```
 
 Examples:
 
@@ -2667,7 +2695,7 @@ $ kamal registry logout
   INFO [72b94e74] Finished in 0.142 seconds with exit status 0 (successful).
   INFO [8488da90] Finished in 0.179 seconds with exit status 0 (successful).
   INFO [d096054d] Finished in 0.183 seconds with exit status 0 (successful).
-```
+````
 
 # remove.md
 

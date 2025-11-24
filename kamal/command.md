@@ -1,4 +1,3 @@
-Commands:
 kamal accessory           # Manage accessories (db/redis/search)
 kamal app                 # Manage application
 kamal audit               # Show audit log from servers
@@ -12,7 +11,7 @@ kamal init                # Create config stub in config/deploy.yml and secrets 
 kamal lock                # Manage the deploy lock
 kamal proxy               # Manage kamal-proxy
 kamal prune               # Prune old application images and containers
-kamal redeploy            # Deploy app to servers without bootstrapping servers, starting kamal-proxy, pruning, and registry login
+kamal redeploy            # Deploy app to servers without bootstrapping servers, starting kamal-proxy and pruning
 kamal registry            # Login and -out of the image registry
 kamal remove              # Remove kamal-proxy, app, accessories, and registry session from servers
 kamal rollback [VERSION]  # Rollback app to VERSION
